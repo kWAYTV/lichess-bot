@@ -64,6 +64,9 @@ class ConfigManager:
             "thinking-min-delay": "0.8",
             "thinking-max-delay": "3.0",
         }
+        self.config["browser"] = {
+            "firefox-binary-path": "",
+        }
 
         with open(self._config_path, "w") as configfile:
             self.config.write(configfile)
@@ -141,6 +144,16 @@ class ConfigManager:
     def humanization_config(self) -> Dict[str, str]:
         """Get humanization configuration"""
         return self.get_section("humanization")
+
+    @property
+    def browser_config(self) -> Dict[str, str]:
+        """Get browser configuration"""
+        return self.get_section("browser")
+
+    @property
+    def firefox_binary_path(self) -> str:
+        """Get the Firefox binary path"""
+        return self.get("browser", "firefox-binary-path", "")
 
     @property
     def log_level(self) -> str:

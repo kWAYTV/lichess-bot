@@ -9,8 +9,43 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
+from ..config.manager import ConfigManager
 from ..utils.helpers import get_geckodriver_path, install_firefox_extensions
 from ..utils.resilience import browser_retry, element_retry, safe_execute
+
+
+def find_firefox_binary() -> Optional[str]:
+    """Find Firefox binary path on the system"""
+    import shutil
+
+    # Common Firefox installation paths for Windows
+    common_paths = [
+        r"C:\Program Files\Mozilla Firefox\firefox.exe",
+        r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
+        r"C:\Program Files\Firefox Developer Edition\firefox.exe",
+        r"C:\Program Files (x86)\Firefox Developer Edition\firefox.exe",
+        # Add portable Firefox paths
+        r"C:\Firefox\firefox.exe",
+        r"D:\Firefox\firefox.exe",
+    ]
+
+    # Check common paths first
+    for path in common_paths:
+        if os.path.exists(path):
+            logger.debug(f"Found Firefox at: {path}")
+            return path
+
+    # Try to find using 'where' command on Windows
+    try:
+        result = shutil.which("firefox")
+        if result:
+            logger.debug(f"Found Firefox using 'where': {result}")
+            return result
+    except:
+        pass
+
+    logger.warning("Could not find Firefox binary. Please install Firefox or configure the path in config.ini")
+    return None
 
 
 class BrowserManager:
@@ -34,7 +69,22 @@ class BrowserManager:
     def _setup_driver(self) -> None:
         """Initialize Firefox WebDriver with options"""
         try:
+            config_manager = ConfigManager()
+            firefox_binary = config_manager.firefox_binary_path
+
+            # If no binary path configured, try to auto-detect
+            if not firefox_binary:
+                firefox_binary = find_firefox_binary()
+                if firefox_binary:
+                    logger.info(f"Auto-detected Firefox at: {firefox_binary}")
+
             webdriver_options = webdriver.FirefoxOptions()
+
+            # Set Firefox binary path if found/configured
+            if firefox_binary:
+                webdriver_options.binary_location = firefox_binary
+                logger.debug(f"Using Firefox binary: {firefox_binary}")
+
             webdriver_options.add_argument(
                 f'--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"'
             )
