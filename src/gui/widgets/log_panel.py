@@ -38,45 +38,44 @@ class LogPanelWidget(tk.Frame):
         self._create_widgets()
         self._setup_layout()
 
-        # Add minimal welcome message
-        self.add_log("Ready", "success")
+        # No welcome message for compact layout
 
     def _create_widgets(self):
         """Create all log panel widgets"""
 
-        # Title with controls
-        self.header_frame = tk.Frame(self, bg="#2B2B2B")
+        # Compact header with controls
+        self.header_frame = tk.Frame(self, bg="#1A1A1A")
 
         self.title_label = tk.Label(
             self.header_frame,
             text="Activity Log",
-            font=("Arial", 14, "bold"),
+            font=("Arial", 10, "bold"),
             fg="#FFFFFF",
-            bg="#2B2B2B",
+            bg="#1A1A1A",
         )
 
         self.clear_button = tk.Button(
             self.header_frame,
             text="Clear",
             command=self._clear_logs,
-            font=("Arial", 9),
+            font=("Arial", 8),
             bg="#404040",
             fg="#FFFFFF",
             relief="flat",
             bd=1,
-            padx=10,
-            pady=2,
+            padx=8,
+            pady=1,
         )
 
         self.auto_scroll_var = tk.BooleanVar(value=True)
         self.auto_scroll_checkbox = tk.Checkbutton(
             self.header_frame,
-            text="Auto-scroll",
+            text="Auto",
             variable=self.auto_scroll_var,
             command=self._toggle_auto_scroll,
-            font=("Arial", 9),
+            font=("Arial", 8),
             fg="#CCCCCC",
-            bg="#2B2B2B",
+            bg="#1A1A1A",
             selectcolor="#404040",
         )
 
@@ -87,9 +86,9 @@ class LogPanelWidget(tk.Frame):
             text="Debug",
             variable=self.show_debug_var,
             command=self._toggle_debug_logs,
-            font=("Arial", 9),
+            font=("Arial", 8),
             fg="#CCCCCC",
-            bg="#2B2B2B",
+            bg="#1A1A1A",
             selectcolor="#404040",
         )
 
@@ -130,17 +129,17 @@ class LogPanelWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Header
-        self.header_frame.grid(row=0, column=0, sticky="ew", pady=(10, 5))
+        # Compact header
+        self.header_frame.grid(row=0, column=0, sticky="ew", pady=(2, 2))
         self.header_frame.grid_columnconfigure(1, weight=1)
 
-        self.title_label.grid(row=0, column=0, sticky="w")
-        self.debug_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 10))
-        self.auto_scroll_checkbox.grid(row=0, column=2, sticky="e", padx=(0, 10))
+        self.title_label.grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.debug_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 5))
+        self.auto_scroll_checkbox.grid(row=0, column=2, sticky="e", padx=(0, 5))
         self.clear_button.grid(row=0, column=3, sticky="e")
 
-        # Log area
-        self.log_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
+        # Compact log area
+        self.log_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 2))
         self.log_frame.grid_columnconfigure(0, weight=1)
         self.log_frame.grid_rowconfigure(0, weight=1)
 

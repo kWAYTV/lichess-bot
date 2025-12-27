@@ -83,13 +83,20 @@ class ChessBotGUI:
                  background=[("selected", "#4A4A4A"), ("active", "#555555")],
                  foreground=[("selected", "#FFFFFF"), ("active", "#FFFFFF")])
 
-        # Game Info Tab
+        # Game Info & Activity Tab
         game_info_frame = tk.Frame(self.notebook, bg="#1A1A1A")
         game_info_frame.grid_columnconfigure(0, weight=1)
-        game_info_frame.grid_rowconfigure(0, weight=1)
+        game_info_frame.grid_rowconfigure(0, weight=1)  # Game info gets top half
+        game_info_frame.grid_rowconfigure(1, weight=1)  # Activity log gets bottom half
 
+        # Game info section (top)
         self.game_info = GameInfoWidget(game_info_frame)
-        self.game_info.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.game_info.grid(row=0, column=0, sticky="nsew", padx=5, pady=(5, 2))
+
+        # Activity log section (bottom)
+        self.log_panel = LogPanelWidget(game_info_frame)
+        self.log_panel.grid(row=1, column=0, sticky="nsew", padx=5, pady=(2, 5))
+
         self.notebook.add(game_info_frame, text="Game Info")
 
         # Move History Tab
@@ -100,15 +107,6 @@ class ChessBotGUI:
         self.move_history = MoveHistoryWidget(move_history_frame)
         self.move_history.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.notebook.add(move_history_frame, text="Move History")
-
-        # Activity Log Tab
-        log_frame = tk.Frame(self.notebook, bg="#1A1A1A")
-        log_frame.grid_columnconfigure(0, weight=1)
-        log_frame.grid_rowconfigure(0, weight=1)
-
-        self.log_panel = LogPanelWidget(log_frame)
-        self.log_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.notebook.add(log_frame, text="Activity Log")
 
         # Statistics Tab
         stats_frame = tk.Frame(self.notebook, bg="#1A1A1A")

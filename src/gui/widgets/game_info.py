@@ -27,10 +27,10 @@ class GameInfoWidget(tk.Frame):
         # Title
         self.title_label = tk.Label(
             self,
-            text="Game Information",
-            font=("Arial", 12, "bold"),  # Smaller for tabbed layout
+            text="Game Status",
+            font=("Arial", 11, "bold"),  # Even smaller for shared tab
             fg="#FFFFFF",
-            bg="#1A1A1A",  # Match tab background
+            bg="#1A1A1A",
         )
 
         # Game status frame
@@ -110,25 +110,25 @@ class GameInfoWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
 
         # Title
-        self.title_label.grid(row=0, column=0, pady=(5, 8), sticky="ew")
+        self.title_label.grid(row=0, column=0, pady=(3, 4), sticky="ew")
 
-        # Game status
-        self.status_frame.grid(row=1, column=0, pady=(0, 5), padx=2, sticky="ew")
+        # Game status - very compact
+        self.status_frame.grid(row=1, column=0, pady=(0, 3), padx=1, sticky="ew")
         self.status_frame.grid_columnconfigure(0, weight=1)
 
-        self.color_label.grid(row=0, column=0, pady=3, padx=8, sticky="w")
-        self.turn_label.grid(row=1, column=0, pady=1, padx=8, sticky="w")
-        self.move_number_label.grid(row=2, column=0, pady=3, padx=8, sticky="w")
+        self.color_label.grid(row=0, column=0, pady=2, padx=6, sticky="w")
+        self.turn_label.grid(row=1, column=0, pady=1, padx=6, sticky="w")
+        self.move_number_label.grid(row=2, column=0, pady=2, padx=6, sticky="w")
 
-        # Engine info
-        self.engine_frame.grid(row=2, column=0, pady=(0, 5), padx=2, sticky="ew")
+        # Engine info - compact
+        self.engine_frame.grid(row=2, column=0, pady=(0, 3), padx=1, sticky="ew")
         self.engine_frame.grid_columnconfigure(0, weight=1)
 
-        self.engine_title.grid(row=0, column=0, pady=(5, 5), sticky="ew")
-        self.suggestion_label.grid(row=1, column=0, pady=1, padx=8, sticky="w")
-        self.evaluation_label.grid(row=2, column=0, pady=1, padx=8, sticky="w")
-        self.depth_label.grid(row=3, column=0, pady=1, padx=8, sticky="w")
-        self.best_line_label.grid(row=4, column=0, pady=(1, 5), padx=8, sticky="w")
+        self.engine_title.grid(row=0, column=0, pady=(3, 3), sticky="ew")
+        self.suggestion_label.grid(row=1, column=0, pady=1, padx=6, sticky="w")
+        self.evaluation_label.grid(row=2, column=0, pady=1, padx=6, sticky="w")
+        self.depth_label.grid(row=3, column=0, pady=1, padx=6, sticky="w")
+        self.best_line_label.grid(row=4, column=0, pady=(1, 3), padx=6, sticky="w")
 
     def update_info(self, info: dict):
         """Update game information"""
