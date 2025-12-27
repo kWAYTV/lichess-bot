@@ -24,24 +24,24 @@ class MoveHistoryWidget(tk.Frame):
     def _create_widgets(self):
         """Create all history widgets"""
 
-        # Title
+        # Compact title for shared tab
         self.title_label = tk.Label(
             self,
-            text="Move History",
-            font=("Arial", 14, "bold"),
+            text="Moves",
+            font=("Arial", 10, "bold"),
             fg="#FFFFFF",
-            bg="#2B2B2B",
+            bg="#1A1A1A",
         )
 
         # Create frame for treeview and scrollbar
         self.tree_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
 
-        # Create treeview for moves - compact for tabbed layout
+        # Create treeview for moves - very compact for shared tab
         self.tree = ttk.Treeview(
             self.tree_frame,
             columns=("move_num", "white", "black", "eval"),
             show="headings",
-            height=15,  # Taller for tabbed layout
+            height=8,  # Compact for shared tab
         )
 
         # Configure columns
@@ -94,11 +94,11 @@ class MoveHistoryWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Title
-        self.title_label.grid(row=0, column=0, pady=(10, 5), sticky="ew")
+        # Compact title
+        self.title_label.grid(row=0, column=0, pady=(2, 2), sticky="ew")
 
-        # Tree frame
-        self.tree_frame.grid(row=1, column=0, pady=(0, 5), padx=5, sticky="nsew")
+        # Compact tree frame
+        self.tree_frame.grid(row=1, column=0, pady=(0, 2), padx=2, sticky="nsew")
         self.tree_frame.grid_columnconfigure(0, weight=1)
         self.tree_frame.grid_rowconfigure(0, weight=1)
 
@@ -106,8 +106,8 @@ class MoveHistoryWidget(tk.Frame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.scrollbar.grid(row=0, column=1, sticky="ns")
 
-        # Status
-        self.status_label.grid(row=2, column=0, pady=(0, 10), sticky="ew")
+        # Compact status
+        self.status_label.grid(row=2, column=0, pady=(0, 2), sticky="ew")
 
     def add_move(self, move: chess.Move, move_number: int, is_white: bool, evaluation: str = ""):
         """Add a move to the history"""

@@ -95,7 +95,7 @@ class LogPanelWidget(tk.Frame):
         # Log display area
         self.log_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
 
-        # Text widget with scrollbar - compact for tabbed layout
+        # Text widget with scrollbar - very compact for shared tab
         self.log_text = tk.Text(
             self.log_frame,
             wrap=tk.WORD,
@@ -104,11 +104,11 @@ class LogPanelWidget(tk.Frame):
             fg="#FFFFFF",
             insertbackground="#FFFFFF",
             selectbackground="#404040",
-            font=("Consolas", 8),  # Slightly smaller font
+            font=("Consolas", 7),  # Even smaller font for space
             relief="flat",
             borderwidth=0,
-            padx=6,  # Less padding
-            pady=3,
+            padx=4,  # Minimal padding
+            pady=2,
         )
 
         self.scrollbar = tk.Scrollbar(

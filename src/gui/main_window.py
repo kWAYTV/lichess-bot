@@ -83,30 +83,26 @@ class ChessBotGUI:
                  background=[("selected", "#4A4A4A"), ("active", "#555555")],
                  foreground=[("selected", "#FFFFFF"), ("active", "#FFFFFF")])
 
-        # Game Info & Activity Tab
+        # Game Info, Activity & History Tab
         game_info_frame = tk.Frame(self.notebook, bg="#1A1A1A")
         game_info_frame.grid_columnconfigure(0, weight=1)
-        game_info_frame.grid_rowconfigure(0, weight=1)  # Game info gets top half
-        game_info_frame.grid_rowconfigure(1, weight=1)  # Activity log gets bottom half
+        game_info_frame.grid_rowconfigure(0, weight=0)  # Game info - fixed height
+        game_info_frame.grid_rowconfigure(1, weight=1)  # Activity log - flexible
+        game_info_frame.grid_rowconfigure(2, weight=1)  # Move history - flexible
 
-        # Game info section (top)
+        # Game info section (top - compact)
         self.game_info = GameInfoWidget(game_info_frame)
-        self.game_info.grid(row=0, column=0, sticky="nsew", padx=5, pady=(5, 2))
+        self.game_info.grid(row=0, column=0, sticky="ew", padx=5, pady=(5, 2))
 
-        # Activity log section (bottom)
+        # Activity log section (middle)
         self.log_panel = LogPanelWidget(game_info_frame)
-        self.log_panel.grid(row=1, column=0, sticky="nsew", padx=5, pady=(2, 5))
+        self.log_panel.grid(row=1, column=0, sticky="nsew", padx=5, pady=(2, 2))
 
-        self.notebook.add(game_info_frame, text="Game Info")
+        # Move history section (bottom)
+        self.move_history = MoveHistoryWidget(game_info_frame)
+        self.move_history.grid(row=2, column=0, sticky="nsew", padx=5, pady=(2, 5))
 
-        # Move History Tab
-        move_history_frame = tk.Frame(self.notebook, bg="#1A1A1A")
-        move_history_frame.grid_columnconfigure(0, weight=1)
-        move_history_frame.grid_rowconfigure(0, weight=1)
-
-        self.move_history = MoveHistoryWidget(move_history_frame)
-        self.move_history.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        self.notebook.add(move_history_frame, text="Move History")
+        self.notebook.add(game_info_frame, text="Game")
 
         # Statistics Tab
         stats_frame = tk.Frame(self.notebook, bg="#1A1A1A")
