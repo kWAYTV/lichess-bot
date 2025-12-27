@@ -82,8 +82,8 @@ class GameInfoWidget(tk.Frame):
         self.evaluation_label = tk.Label(
             self.engine_frame,
             text="Evaluation: N/A",
-            font=("Arial", 9),
-            fg="#CCCCCC",
+            font=("Arial", 10, "bold"),
+            fg="#00DD88",
             bg="#1A1A1A",
         )
 
@@ -93,6 +93,16 @@ class GameInfoWidget(tk.Frame):
             font=("Arial", 9),
             fg="#CCCCCC",
             bg="#1A1A1A",
+        )
+
+        self.best_line_label = tk.Label(
+            self.engine_frame,
+            text="Best line: N/A",
+            font=("Arial", 9),
+            fg="#CCCCCC",
+            bg="#1A1A1A",
+            wraplength=200,
+            justify="left",
         )
 
     def _setup_layout(self):
@@ -117,7 +127,8 @@ class GameInfoWidget(tk.Frame):
         self.engine_title.grid(row=0, column=0, pady=(10, 8), sticky="ew")
         self.suggestion_label.grid(row=1, column=0, pady=2, padx=10, sticky="w")
         self.evaluation_label.grid(row=2, column=0, pady=2, padx=10, sticky="w")
-        self.depth_label.grid(row=3, column=0, pady=(2, 10), padx=10, sticky="w")
+        self.depth_label.grid(row=3, column=0, pady=2, padx=10, sticky="w")
+        self.best_line_label.grid(row=4, column=0, pady=(2, 10), padx=10, sticky="w")
 
     def update_info(self, info: dict):
         """Update game information"""
@@ -165,33 +176,73 @@ class GameInfoWidget(tk.Frame):
 
             # Update evaluation if provided
             if evaluation:
-                if "score" in evaluation and evaluation["score"]:
-                    score = evaluation["score"]
-                    if hasattr(score, "relative") and score.relative is not None:
-                        score_val = score.relative.score(mate_score=10000) / 100.0
-                        self.evaluation_label.configure(
-                            text=f"Evaluation: {score_val:+.2f}"
-                        )
-                    elif hasattr(score, "white") and score.white is not None:
-                        score_val = score.white().score(mate_score=10000) / 100.0
-                        self.evaluation_label.configure(
-                            text=f"Evaluation: {score_val:+.2f}"
-                        )
-                    else:
-                        self.evaluation_label.configure(text="Evaluation: N/A")
-                else:
-                    self.evaluation_label.configure(text="Evaluation: N/A")
+                eval_text = self._format_evaluation(evaluation)
+                self.evaluation_label.configure(text=eval_text)
 
                 if "depth" in evaluation:
                     depth = evaluation["depth"]
                     self.depth_label.configure(text=f"Depth: {depth}")
+                else:
+                    self.depth_label.configure(text="Depth: N/A")
+
+                # Show principal variation (best line)
+                if "pv" in evaluation and evaluation["pv"]:
+                    pv = evaluation["pv"]
+                    if pv and len(pv) > 0:
+                        pv_moves = [str(m) for m in pv[:5]]  # Show first 5 moves
+                        best_line = " ".join(pv_moves)
+                        if len(pv) > 5:
+                            best_line += " ..."
+                        self.best_line_label.configure(text=f"Best line: {best_line}")
+                    else:
+                        self.best_line_label.configure(text="Best line: N/A")
+                else:
+                    self.best_line_label.configure(text="Best line: N/A")
             else:
                 self.evaluation_label.configure(text="Evaluation: N/A")
                 self.depth_label.configure(text="Depth: N/A")
+                self.best_line_label.configure(text="Best line: N/A")
         else:
             self.suggestion_label.configure(text="No suggestion", fg="#888888")
             self.evaluation_label.configure(text="Evaluation: N/A")
             self.depth_label.configure(text="Depth: N/A")
+
+    def _format_evaluation(self, evaluation: dict) -> str:
+        """Format evaluation score with proper mate and centipawn handling"""
+        if "score" not in evaluation or not evaluation["score"]:
+            return "Evaluation: N/A"
+
+        score = evaluation["score"]
+
+        # Handle different score types
+        try:
+            # Check for mate scores first
+            if hasattr(score, "is_mate") and score.is_mate():
+                mate_in = score.mate()
+                if mate_in > 0:
+                    return f"Evaluation: Mate in {mate_in}"
+                else:
+                    return f"Evaluation: Mated in {abs(mate_in)}"
+
+            # Handle relative scores (from white's perspective)
+            if hasattr(score, "relative") and score.relative is not None:
+                score_val = score.relative.score(mate_score=10000) / 100.0
+                return f"Evaluation: {score_val:+.2f}"
+
+            # Handle absolute scores
+            if hasattr(score, "white") and score.white is not None:
+                score_val = score.white().score(mate_score=10000) / 100.0
+                return f"Evaluation: {score_val:+.2f}"
+
+            # Fallback - try direct score access
+            if hasattr(score, "score"):
+                score_val = score.score(mate_score=10000) / 100.0
+                return f"Evaluation: {score_val:+.2f}"
+
+        except Exception:
+            pass
+
+        return "Evaluation: N/A"
 
     def clear_suggestion(self):
         """Clear the current suggestion"""

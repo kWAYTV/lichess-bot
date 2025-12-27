@@ -34,14 +34,7 @@ class BoardHandler:
 
     def wait_for_game_ready(self) -> bool:
         """Wait for game to be ready and return True if successful"""
-        logger.debug("Waiting for game setup")
-
-        # Wait for follow-up to disappear
-        while self.browser_manager.check_exists_by_class("follow-up"):
-            logger.debug("Found follow-up element, waiting for user action...")
-            sleep(1)
-
-        logger.debug("No follow-up found, waiting for game interface")
+        # Waiting for game setup silently
 
         try:
             # First, wait to be in an actual game URL (not lobby)
@@ -58,9 +51,7 @@ class BoardHandler:
                     and "/training" not in current_url
                     and len(current_url.split("/")[-1]) >= 8
                 ):  # Game IDs are typically 8+ chars
-                    logger.debug(f"Detected game URL: {current_url}")
                     break
-                logger.debug(f"Still on lobby/non-game page: {current_url}, waiting...")
                 sleep(1)
                 url_wait_count += 1
 
@@ -165,9 +156,7 @@ class BoardHandler:
                 element = elements[move_number - 1]  # 0-based indexing
                 move_text = element.text.strip()
                 if move_text:  # Only return if there's actual text
-                    logger.debug(
-                        f"Found move {move_number}: '{move_text}' by class index"
-                    )
+                    # Move found
                     return element
         except:
             pass

@@ -14,8 +14,9 @@ class MoveHistoryWidget(tk.Frame):
         super().__init__(parent, bg="#2B2B2B", **kwargs)
 
         # State
-        self.moves: List[tuple] = []  # [(move_number, white_move, black_move), ...]
+        self.moves: List[tuple] = []  # [(move_number, white_move, black_move, evaluation), ...]
         self.current_move_number = 0
+        self.current_evaluation = None
 
         self._create_widgets()
         self._setup_layout()
@@ -38,19 +39,21 @@ class MoveHistoryWidget(tk.Frame):
         # Create treeview for moves
         self.tree = ttk.Treeview(
             self.tree_frame,
-            columns=("move_num", "white", "black"),
+            columns=("move_num", "white", "black", "eval"),
             show="headings",
-            height=12,
+            height=12,  # Good height for move history
         )
 
         # Configure columns
         self.tree.heading("move_num", text="#")
         self.tree.heading("white", text="White")
         self.tree.heading("black", text="Black")
+        self.tree.heading("eval", text="Eval")
 
-        self.tree.column("move_num", width=40, anchor="center")
-        self.tree.column("white", width=80, anchor="center")
-        self.tree.column("black", width=80, anchor="center")
+        self.tree.column("move_num", width=35, anchor="center")
+        self.tree.column("white", width=70, anchor="center")
+        self.tree.column("black", width=70, anchor="center")
+        self.tree.column("eval", width=50, anchor="center")
 
         # Configure treeview styling
         style = ttk.Style()
@@ -106,7 +109,7 @@ class MoveHistoryWidget(tk.Frame):
         # Status
         self.status_label.grid(row=2, column=0, pady=(0, 10), sticky="ew")
 
-    def add_move(self, move: chess.Move, move_number: int, is_white: bool):
+    def add_move(self, move: chess.Move, move_number: int, is_white: bool, evaluation: str = ""):
         """Add a move to the history"""
         move_str = str(move)
 
@@ -117,27 +120,29 @@ class MoveHistoryWidget(tk.Frame):
             # White move - start new pair or update existing incomplete pair
             if pair_number > len(self.moves):
                 # New pair
-                self.moves.append((pair_number, move_str, ""))
+                self.moves.append((pair_number, move_str, "", evaluation))
             else:
                 # Update existing pair (shouldn't happen normally)
                 self.moves[pair_number - 1] = (
                     pair_number,
                     move_str,
                     self.moves[pair_number - 1][2],
+                    evaluation,
                 )
         else:
             # Black move - complete the pair
             if pair_number > len(self.moves):
                 # This shouldn't happen (black move without white move)
-                self.moves.append((pair_number, "", move_str))
+                self.moves.append((pair_number, "", move_str, evaluation))
             else:
-                # Complete the pair
+                # Complete the pair with the stored evaluation
                 white_move = (
                     self.moves[pair_number - 1][1]
                     if pair_number <= len(self.moves)
                     else ""
                 )
-                self.moves[pair_number - 1] = (pair_number, white_move, move_str)
+                existing_eval = self.moves[pair_number - 1][3] if len(self.moves[pair_number - 1]) > 3 else ""
+                self.moves[pair_number - 1] = (pair_number, white_move, move_str, existing_eval)
 
         self.current_move_number = move_number
         self._refresh_display()
@@ -149,11 +154,13 @@ class MoveHistoryWidget(tk.Frame):
             self.tree.delete(item)
 
         # Add all moves
-        for move_num, white_move, black_move in self.moves:
+        for move_data in self.moves:
+            move_num, white_move, black_move = move_data[:3]
+            evaluation = move_data[3] if len(move_data) > 3 else ""
             self.tree.insert(
                 "",
                 "end",
-                values=(move_num, white_move or "-", black_move or "-"),
+                values=(move_num, white_move or "-", black_move or "-", evaluation),
             )
 
         # Auto-scroll to bottom
@@ -162,8 +169,8 @@ class MoveHistoryWidget(tk.Frame):
             self.tree.see(last_item)
 
         # Update status
-        total_moves = sum(1 for _, white, black in self.moves if white) + sum(
-            1 for _, white, black in self.moves if black
+        total_moves = sum(1 for move_data in self.moves if move_data[1]) + sum(
+            1 for move_data in self.moves if move_data[2]
         )
         if total_moves == 0:
             self.status_label.configure(text="No moves yet")
@@ -178,6 +185,6 @@ class MoveHistoryWidget(tk.Frame):
 
     def get_move_count(self) -> int:
         """Get total number of moves"""
-        return sum(1 for _, white, black in self.moves if white) + sum(
-            1 for _, white, black in self.moves if black
+        return sum(1 for move_data in self.moves if move_data[1]) + sum(
+            1 for move_data in self.moves if move_data[2]
         )

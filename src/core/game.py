@@ -11,6 +11,7 @@ from ..config import ConfigManager
 from ..core.board import BoardHandler
 from ..core.browser import BrowserManager
 from ..core.engine import ChessEngine
+from ..core.stats import StatisticsManager
 from ..input.keyboard_handler import KeyboardHandler
 from ..utils.debug import DebugUtils
 from ..utils.helpers import advanced_humanized_delay
@@ -37,6 +38,7 @@ class GameManager:
         self.chess_engine = ChessEngine(self.config_manager)
         self.keyboard_handler = KeyboardHandler(self.config_manager)
         self.lichess_auth = LichessAuth(self.config_manager, self.browser_manager)
+        self.stats_manager = StatisticsManager()
 
         # Initialize resilience components
         self.browser_recovery_manager = BrowserRecoveryManager(self.browser_manager)
@@ -63,11 +65,11 @@ class GameManager:
             )
 
         # Start keyboard listener
-        logger.debug("Starting keyboard listener")
+        # Keyboard listener started silently
         self.keyboard_handler.start_listening()
 
         # Navigate to Lichess with recovery
-        logger.debug("Navigating to lichess.org")
+        # Navigation handled silently
         try:
             self.browser_manager.navigate_to("https://www.lichess.org")
         except Exception as e:
@@ -142,6 +144,10 @@ class GameManager:
         # Store our color for result interpretation
         self._our_color = our_color
 
+        # Start statistics tracking for this game
+        color_name = "white" if our_color == "W" else "black"
+        self.stats_manager.start_new_game(our_color=color_name)
+
         # Notify GUI of game info
         self._notify_gui(
             {
@@ -169,14 +175,11 @@ class GameManager:
 
     def play_game(self, our_color: str) -> None:
         """Main game playing loop"""
-        logger.debug(f"Starting play_game as {our_color}")
-
         # Get previous moves to sync board state
         move_number = self.board_handler.get_previous_moves(self.board)
-        logger.debug(f"Ready to play. Starting at move number: {move_number}")
 
         # Save cookies after successful game start (indicates successful login)
-        logger.debug("Saving login cookies for faster future authentication")
+        # Cookies saved silently
         self.browser_manager.save_cookies()
 
         # If this is the very start of the game, log our turn status
@@ -281,7 +284,6 @@ class GameManager:
         # Check if we already made the move
         move_text = self.board_handler.check_for_move(move_number)
         if move_text:
-            logger.debug(f"Our move detected on board at position {move_number}")
             self.board_handler.clear_arrow()
 
             if self.board_handler.validate_and_push_move(
@@ -308,7 +310,6 @@ class GameManager:
         engine_depth = self.config_manager.get(
             "engine", "depth", self.config_manager.get("engine", "Depth", 5)
         )
-        logger.debug(f"Our turn - calculating best move (depth: {engine_depth})")
         advanced_humanized_delay("engine thinking", self.config_manager, "thinking")
 
         result = self.chess_engine.get_best_move(self.board)
@@ -317,16 +318,22 @@ class GameManager:
         dst_square = move_str[2:]
         logger.info(f"Engine suggests: {result.move} ({src_square} → {dst_square})")
 
+        # Prepare evaluation data
+        evaluation_data = {
+            "depth": engine_depth,
+            "score": getattr(result, "info", {}).get("score"),
+            "pv": getattr(result, "info", {}).get("pv", []),
+        }
+
+        # Track evaluation in statistics
+        self.stats_manager.add_evaluation(evaluation_data)
+
         # Notify GUI of suggestion
         self._notify_gui(
             {
                 "type": "suggestion",
                 "move": result.move,
-                "evaluation": {
-                    "depth": engine_depth,
-                    "score": getattr(result, "info", {}).get("score"),
-                    "pv": getattr(result, "info", {}).get("pv", []),
-                },
+                "evaluation": evaluation_data,
             }
         )
 
@@ -479,6 +486,23 @@ class GameManager:
 
         return move_number
 
+    def _determine_game_result(self, score: str, our_color: str) -> str:
+        """Determine game result from score and our color"""
+        try:
+            # Lichess scores are in format like "1-0", "0-1", "1/2-1/2"
+            if score == "1-0":
+                return "win" if our_color == "white" else "loss"
+            elif score == "0-1":
+                return "win" if our_color == "black" else "loss"
+            elif score == "1/2-1/2":
+                return "draw"
+            else:
+                logger.warning(f"Unknown score format: {score}")
+                return "unknown"
+        except Exception as e:
+            logger.error(f"Failed to determine game result: {e}")
+            return "unknown"
+
     def _log_game_result(self) -> None:
         """Log the game result when game ends"""
         try:
@@ -506,6 +530,17 @@ class GameManager:
             # Get move count from history
             move_count = len(self.board.move_stack)
 
+            # Determine result from our perspective
+            game_result = self._determine_game_result(score, our_color)
+
+            # Record game completion in statistics
+            self.stats_manager.end_current_game(
+                result=game_result,
+                score=score,
+                reason=result,
+                total_moves=move_count
+            )
+
             # Notify GUI of game completion
             self._notify_gui(
                 {
@@ -514,6 +549,18 @@ class GameManager:
                     "reason": result,
                     "our_color": our_color,
                     "move_count": move_count,
+                }
+            )
+
+            # Send updated statistics to GUI
+            overall_stats = self.stats_manager.get_overall_stats()
+            recent_games = self.stats_manager.get_recent_games(5)
+            overall_stats["recent_games"] = recent_games
+
+            self._notify_gui(
+                {
+                    "type": "statistics_update",
+                    "stats": overall_stats,
                 }
             )
 

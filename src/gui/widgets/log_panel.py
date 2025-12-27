@@ -13,13 +13,21 @@ class LogPanelWidget(tk.Frame):
         super().__init__(parent, bg="#2B2B2B", **kwargs)
 
         # Configuration
-        self.max_lines = 500  # Maximum lines to keep
+        self.max_lines = 300  # Reduced from 500 to reduce memory usage
         self.auto_scroll = True
+
+        # Log level filtering
+        self.visible_levels = {"info", "success", "warning", "error", "critical"}  # Hide debug by default
+
+        # Rate limiting to prevent spam
+        self.last_log_time = 0
+        self.min_log_interval = 0.1  # Minimum 100ms between similar logs
+        self.recent_messages = {}  # Track recent messages to prevent duplicates
 
         # Colors for different log levels
         self.level_colors: Dict[str, str] = {
-            "trace": "#888888",
-            "debug": "#888888",
+            "trace": "#666666",
+            "debug": "#666666",
             "info": "#FFFFFF",
             "success": "#28A745",
             "warning": "#FFC107",
@@ -30,8 +38,8 @@ class LogPanelWidget(tk.Frame):
         self._create_widgets()
         self._setup_layout()
 
-        # Add initial welcome message
-        self.add_log("Chess Bot GUI initialized", "success")
+        # Add minimal welcome message
+        self.add_log("Ready", "success")
 
     def _create_widgets(self):
         """Create all log panel widgets"""
@@ -66,6 +74,19 @@ class LogPanelWidget(tk.Frame):
             text="Auto-scroll",
             variable=self.auto_scroll_var,
             command=self._toggle_auto_scroll,
+            font=("Arial", 9),
+            fg="#CCCCCC",
+            bg="#2B2B2B",
+            selectcolor="#404040",
+        )
+
+        # Log level filter checkbox
+        self.show_debug_var = tk.BooleanVar(value=False)
+        self.debug_checkbox = tk.Checkbutton(
+            self.header_frame,
+            text="Debug",
+            variable=self.show_debug_var,
+            command=self._toggle_debug_logs,
             font=("Arial", 9),
             fg="#CCCCCC",
             bg="#2B2B2B",
@@ -114,8 +135,9 @@ class LogPanelWidget(tk.Frame):
         self.header_frame.grid_columnconfigure(1, weight=1)
 
         self.title_label.grid(row=0, column=0, sticky="w")
-        self.auto_scroll_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 10))
-        self.clear_button.grid(row=0, column=2, sticky="e")
+        self.debug_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 10))
+        self.auto_scroll_checkbox.grid(row=0, column=2, sticky="e", padx=(0, 10))
+        self.clear_button.grid(row=0, column=3, sticky="e")
 
         # Log area
         self.log_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 10))
@@ -127,8 +149,34 @@ class LogPanelWidget(tk.Frame):
 
     def add_log(self, message: str, level: str = "info"):
         """Add a log message with timestamp and level"""
-        timestamp = datetime.now().strftime("%H:%M:%S")
         level = level.lower()
+
+        # Filter out messages based on visibility settings
+        if level not in self.visible_levels:
+            return
+
+        # Rate limiting and duplicate prevention
+        current_time = datetime.now().timestamp()
+        message_key = f"{level}:{message}"
+
+        # Prevent exact duplicates within 2 seconds
+        if message_key in self.recent_messages:
+            if current_time - self.recent_messages[message_key] < 2.0:
+                return
+
+        # Rate limiting - minimum interval between any logs
+        if current_time - self.last_log_time < self.min_log_interval:
+            return
+
+        self.recent_messages[message_key] = current_time
+        self.last_log_time = current_time
+
+        # Clean up old entries from recent_messages (keep last 50)
+        if len(self.recent_messages) > 50:
+            oldest_key = min(self.recent_messages.keys(), key=lambda k: self.recent_messages[k])
+            del self.recent_messages[oldest_key]
+
+        timestamp = datetime.now().strftime("%H:%M:%S")
 
         # Format the log entry
         log_entry = f"[{timestamp}] {message}\n"
@@ -172,6 +220,15 @@ class LogPanelWidget(tk.Frame):
         if self.auto_scroll:
             self.log_text.see(tk.END)
 
+    def _toggle_debug_logs(self):
+        """Toggle debug log visibility"""
+        if self.show_debug_var.get():
+            self.visible_levels.add("debug")
+            self.visible_levels.add("trace")
+        else:
+            self.visible_levels.discard("debug")
+            self.visible_levels.discard("trace")
+
     def bulk_add_logs(self, logs: list):
         """Add multiple log entries at once (more efficient)"""
         if not logs:
@@ -187,11 +244,17 @@ class LogPanelWidget(tk.Frame):
                 message = str(log_data)
                 level = "info"
 
+            level = level.lower()
+
+            # Filter out messages based on visibility settings
+            if level not in self.visible_levels:
+                continue
+
             timestamp = datetime.now().strftime("%H:%M:%S")
             log_entry = f"[{timestamp}] {message}\n"
 
-            if level.lower() in self.level_colors:
-                self.log_text.insert(tk.END, log_entry, level.lower())
+            if level in self.level_colors:
+                self.log_text.insert(tk.END, log_entry, level)
             else:
                 self.log_text.insert(tk.END, log_entry, "info")
 

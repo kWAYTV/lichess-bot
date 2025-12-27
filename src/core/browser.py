@@ -83,7 +83,7 @@ class BrowserManager:
             # Set Firefox binary path if found/configured
             if firefox_binary:
                 webdriver_options.binary_location = firefox_binary
-                logger.debug(f"Using Firefox binary: {firefox_binary}")
+                # Firefox binary configured - no need to log path for security
 
             webdriver_options.add_argument(
                 f'--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"'

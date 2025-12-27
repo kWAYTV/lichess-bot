@@ -1,0 +1,306 @@
+"""Statistics Manager - Track game performance and analytics"""
+
+import json
+import os
+from datetime import datetime
+from typing import Dict, List, Optional
+
+import chess
+from loguru import logger
+
+
+class GameStats:
+    """Statistics for a single game"""
+
+    def __init__(self):
+        self.game_id: Optional[str] = None
+        self.start_time: datetime = datetime.now()
+        self.end_time: Optional[datetime] = None
+        self.our_color: Optional[str] = None
+        self.result: Optional[str] = None  # "win", "loss", "draw"
+        self.score: Optional[str] = None
+        self.reason: Optional[str] = None
+        self.total_moves: int = 0
+        self.engine_evaluations: List[Dict] = []
+        self.average_evaluation: Optional[float] = None
+        self.best_evaluation: Optional[float] = None
+        self.worst_evaluation: Optional[float] = None
+
+    def complete_game(self, result: str, score: str, reason: str, total_moves: int):
+        """Mark game as completed with results"""
+        self.end_time = datetime.now()
+        self.result = result
+        self.score = score
+        self.reason = reason
+        self.total_moves = total_moves
+
+        # Calculate evaluation statistics
+        if self.engine_evaluations:
+            scores = []
+            for eval_data in self.engine_evaluations:
+                if "score" in eval_data:
+                    score_val = self._extract_score_value(eval_data["score"])
+                    if score_val is not None:
+                        scores.append(score_val)
+
+            if scores:
+                self.average_evaluation = sum(scores) / len(scores)
+                self.best_evaluation = max(scores)
+                self.worst_evaluation = min(scores)
+
+    def add_evaluation(self, evaluation: Dict):
+        """Add an engine evaluation for this game"""
+        self.engine_evaluations.append(evaluation)
+
+    def _extract_score_value(self, score) -> Optional[float]:
+        """Extract numerical score value from chess engine score object"""
+        try:
+            if hasattr(score, "is_mate") and score.is_mate():
+                mate_in = score.mate()
+                return 1000.0 if mate_in > 0 else -1000.0
+
+            if hasattr(score, "relative") and score.relative is not None:
+                return score.relative.score(mate_score=10000) / 100.0
+
+            if hasattr(score, "white") and score.white is not None:
+                return score.white().score(mate_score=10000) / 100.0
+
+            if hasattr(score, "score"):
+                return score.score(mate_score=10000) / 100.0
+
+        except Exception:
+            pass
+        return None
+
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            "game_id": self.game_id,
+            "start_time": self.start_time.isoformat(),
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "our_color": self.our_color,
+            "result": self.result,
+            "score": self.score,
+            "reason": self.reason,
+            "total_moves": self.total_moves,
+            "average_evaluation": self.average_evaluation,
+            "best_evaluation": self.best_evaluation,
+            "worst_evaluation": self.worst_evaluation,
+            "evaluation_count": len(self.engine_evaluations),
+        }
+
+
+class StatisticsManager:
+    """Manager for tracking chess game statistics and performance"""
+
+    def __init__(self, stats_file: str = "stats.json"):
+        self.stats_file = stats_file
+        self.current_game: Optional[GameStats] = None
+        self.all_games: List[GameStats] = []
+        self.load_stats()
+
+    def start_new_game(self, game_id: str = None, our_color: str = None) -> None:
+        """Start tracking a new game"""
+        if self.current_game:
+            logger.warning("Starting new game while previous game is still active")
+            self.end_current_game("abandoned", "Game abandoned", "New game started", 0)
+
+        self.current_game = GameStats()
+        self.current_game.game_id = game_id or f"game_{int(datetime.now().timestamp())}"
+        self.current_game.our_color = our_color
+
+        logger.debug(f"Started tracking game: {self.current_game.game_id}")
+
+    def end_current_game(self, result: str, score: str, reason: str, total_moves: int) -> None:
+        """End the current game and save statistics"""
+        if not self.current_game:
+            logger.warning("Attempting to end game when no game is active")
+            return
+
+        self.current_game.complete_game(result, score, reason, total_moves)
+        self.all_games.append(self.current_game)
+
+        logger.info(f"Game completed: {result} ({score}) - {total_moves} moves")
+        self.save_stats()
+        self.current_game = None
+
+    def add_evaluation(self, evaluation: Dict) -> None:
+        """Add an engine evaluation to the current game"""
+        if self.current_game:
+            self.current_game.add_evaluation(evaluation)
+
+    def get_current_game_stats(self) -> Optional[Dict]:
+        """Get statistics for the current game"""
+        if self.current_game:
+            return self.current_game.to_dict()
+        return None
+
+    def get_overall_stats(self) -> Dict:
+        """Get overall statistics across all games"""
+        if not self.all_games:
+            return self._empty_stats()
+
+        total_games = len(self.all_games)
+        wins = sum(1 for g in self.all_games if g.result == "win")
+        losses = sum(1 for g in self.all_games if g.result == "loss")
+        draws = sum(1 for g in self.all_games if g.result == "draw")
+
+        win_rate = (wins / total_games * 100) if total_games > 0 else 0
+
+        # Calculate average game length
+        game_lengths = [g.total_moves for g in self.all_games if g.total_moves > 0]
+        avg_game_length = sum(game_lengths) / len(game_lengths) if game_lengths else 0
+
+        # Calculate average evaluation
+        evaluations = [g.average_evaluation for g in self.all_games if g.average_evaluation is not None]
+        avg_evaluation = sum(evaluations) / len(evaluations) if evaluations else None
+
+        return {
+            "total_games": total_games,
+            "wins": wins,
+            "losses": losses,
+            "draws": draws,
+            "win_rate": round(win_rate, 1),
+            "average_game_length": round(avg_game_length, 1),
+            "average_evaluation": round(avg_evaluation, 2) if avg_evaluation else None,
+            "best_win": self._find_best_result("win"),
+            "worst_loss": self._find_best_result("loss"),
+        }
+
+    def get_recent_games(self, limit: int = 10) -> List[Dict]:
+        """Get recent games (most recent first)"""
+        recent_games = sorted(self.all_games, key=lambda g: g.start_time, reverse=True)
+        return [game.to_dict() for game in recent_games[:limit]]
+
+    def _find_best_result(self, result_type: str) -> Optional[Dict]:
+        """Find the best result of a given type"""
+        games = [g for g in self.all_games if g.result == result_type]
+        if not games:
+            return None
+
+        if result_type == "win":
+            # Best win = highest evaluation
+            games_with_eval = [g for g in games if g.average_evaluation is not None]
+            if games_with_eval:
+                best = max(games_with_eval, key=lambda g: g.average_evaluation)
+                return {
+                    "evaluation": round(best.average_evaluation, 2),
+                    "moves": best.total_moves,
+                    "date": best.start_time.isoformat(),
+                }
+        elif result_type == "loss":
+            # Worst loss = lowest evaluation
+            games_with_eval = [g for g in games if g.average_evaluation is not None]
+            if games_with_eval:
+                worst = min(games_with_eval, key=lambda g: g.average_evaluation)
+                return {
+                    "evaluation": round(worst.average_evaluation, 2),
+                    "moves": worst.total_moves,
+                    "date": worst.start_time.isoformat(),
+                }
+
+        return None
+
+    def _empty_stats(self) -> Dict:
+        """Return empty statistics structure"""
+        return {
+            "total_games": 0,
+            "wins": 0,
+            "losses": 0,
+            "draws": 0,
+            "win_rate": 0,
+            "average_game_length": 0,
+            "average_evaluation": None,
+            "best_win": None,
+            "worst_loss": None,
+        }
+
+    def save_stats(self) -> None:
+        """Save statistics to file"""
+        try:
+            stats_data = {
+                "games": [game.to_dict() for game in self.all_games],
+                "last_updated": datetime.now().isoformat(),
+            }
+
+            with open(self.stats_file, "w") as f:
+                json.dump(stats_data, f, indent=2)
+
+            logger.debug(f"Saved statistics for {len(self.all_games)} games")
+        except Exception as e:
+            logger.error(f"Failed to save statistics: {e}")
+
+    def load_stats(self) -> None:
+        """Load statistics from file"""
+        if not os.path.exists(self.stats_file):
+            logger.debug("No existing statistics file found")
+            return
+
+        try:
+            with open(self.stats_file, "r") as f:
+                stats_data = json.load(f)
+
+            # Reconstruct GameStats objects
+            self.all_games = []
+            for game_data in stats_data.get("games", []):
+                game = GameStats()
+                game.game_id = game_data.get("game_id")
+                game.start_time = datetime.fromisoformat(game_data["start_time"])
+                if game_data.get("end_time"):
+                    game.end_time = datetime.fromisoformat(game_data["end_time"])
+                game.our_color = game_data.get("our_color")
+                game.result = game_data.get("result")
+                game.score = game_data.get("score")
+                game.reason = game_data.get("reason")
+                game.total_moves = game_data.get("total_moves", 0)
+                game.average_evaluation = game_data.get("average_evaluation")
+                game.best_evaluation = game_data.get("best_evaluation")
+                game.worst_evaluation = game_data.get("worst_evaluation")
+
+                self.all_games.append(game)
+
+            logger.debug(f"Loaded statistics for {len(self.all_games)} games")
+        except Exception as e:
+            logger.error(f"Failed to load statistics: {e}")
+            self.all_games = []
+
+    def export_pgn(self, filename: str = "games.pgn") -> bool:
+        """Export all games to PGN format"""
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                for game_stats in self.all_games:
+                    if game_stats.end_time and game_stats.result:
+                        # Create basic PGN headers
+                        f.write(f'[Event "Lichess Game"]\n')
+                        f.write(f'[Date "{game_stats.start_time.strftime("%Y.%m.%d")}"]\n')
+                        f.write(f'[White "{game_stats.our_color or "Unknown"}"]\n')
+                        f.write(f'[Black "Opponent"]\n')
+                        f.write(f'[Result "{game_stats.score or "*"}"]\n')
+                        f.write(f'[PlyCount "{game_stats.total_moves * 2}"]\n')
+                        f.write(f'[GameId "{game_stats.game_id}"]\n')
+                        f.write('\n')
+
+                        # Note: Full move reconstruction would require storing the actual moves
+                        # For now, just write the basic structure
+                        f.write(f'{game_stats.score or "*"}')
+                        f.write('\n\n')
+
+            logger.info(f"Exported {len(self.all_games)} games to {filename}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to export PGN: {e}")
+            return False
+
+    def clear_stats(self) -> None:
+        """Clear all statistics"""
+        self.all_games = []
+        self.current_game = None
+        if os.path.exists(self.stats_file):
+            try:
+                os.remove(self.stats_file)
+                logger.info("Statistics cleared")
+            except Exception as e:
+                logger.error(f"Failed to delete statistics file: {e}")
+        else:
+            logger.info("Statistics cleared (no file to delete)")
