@@ -47,6 +47,8 @@ class GameManager:
         self.current_game_active = False
         self._current_suggestion = None
         self._arrow_drawn = False
+        self._game_result_logged = False  # Prevent duplicate result logging
+        self._waiting_for_user_ack = False  # Wait for user to acknowledge game end
 
         # GUI integration
         self.gui_callback = None
@@ -103,6 +105,8 @@ class GameManager:
         logger.debug("Starting new game - resetting board")
         self.board.reset()
         self.current_game_active = True
+        self._game_result_logged = False  # Reset the flag for new game
+        self._waiting_for_user_ack = False  # Reset waiting flag for new game
 
         # Wait for game to be ready with retries
         max_attempts = 3
@@ -269,8 +273,20 @@ class GameManager:
 
         # Game complete
         logger.debug("Game completed - follow-up element detected")
-        self._log_game_result()
-        logger.info("Game complete. Waiting for new game to start.")
+        if not self._game_result_logged:
+            self._log_game_result()
+            self._game_result_logged = True
+            self._waiting_for_user_ack = True
+            logger.info("Game complete. Waiting for user to acknowledge result.")
+
+            # Wait for user to acknowledge the result before starting new game
+            while self._waiting_for_user_ack:
+                sleep(0.5)  # Poll every 500ms
+
+            logger.info("User acknowledged result. Starting new game.")
+
+        # Start new game - this will either succeed (starting a new loop)
+        # or fail (returning to main app loop)
         self.start_new_game()
 
     def _is_our_turn(self, our_color: str) -> bool:
@@ -582,6 +598,11 @@ class GameManager:
     def set_gui_callback(self, callback):
         """Set the GUI callback for updates"""
         self.gui_callback = callback
+
+    def acknowledge_game_result(self):
+        """Called by GUI when user acknowledges the game result"""
+        self._waiting_for_user_ack = False
+        logger.debug("Game result acknowledged by user")
 
     def _notify_gui(self, update_data: dict):
         """Notify GUI of updates"""

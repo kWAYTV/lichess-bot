@@ -306,12 +306,18 @@ class ChessBotGUI:
         """Show the game result messagebox"""
         try:
             show_game_result(result_data)
+            # Notify game manager that user has acknowledged the result
+            if self.game_manager:
+                self.game_manager.acknowledge_game_result()
         except Exception as e:
             logger.error(f"Error showing game result: {e}")
             # Fallback - just log to console
             score = result_data.get("score", "Unknown")
             reason = result_data.get("reason", "Unknown")
             self.add_log(f"Game finished: {score} - {reason}", "success")
+            # Still acknowledge even on error
+            if self.game_manager:
+                self.game_manager.acknowledge_game_result()
 
     def run(self):
         """Start the GUI main loop"""
