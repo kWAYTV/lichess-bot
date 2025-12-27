@@ -86,12 +86,12 @@ class StatisticsPanelWidget(tk.Frame):
             bg="#1A1A1A",
         )
 
-        # Treeview for recent games
+        # Treeview for recent games - compact for tabbed layout
         self.recent_tree = ttk.Treeview(
             self.recent_frame,
             columns=("result", "score", "moves", "date"),
             show="headings",
-            height=6,  # Slightly reduced for better fit
+            height=5,  # More compact for tab
         )
 
         # Configure columns

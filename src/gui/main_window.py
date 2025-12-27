@@ -35,8 +35,8 @@ class ChessBotGUI:
         """Create and configure the main window"""
         self.root = tk.Tk()
         self.root.title("Lichess Chess Bot")
-        self.root.geometry("1000x700")
-        self.root.minsize(900, 600)
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 700)
         self.root.configure(bg="#2B2B2B")
 
         # Set window icon if available
@@ -45,53 +45,148 @@ class ChessBotGUI:
         except:
             pass
 
-        # Configure main grid - clean two-panel layout
-        self.root.grid_columnconfigure(0, weight=1)  # Left panel - Board + Game Info
-        self.root.grid_columnconfigure(1, weight=1)  # Right panel - Logs + History
-        self.root.grid_rowconfigure(0, weight=1)
+        # Configure main grid - spacious three-section layout
+        self.root.grid_columnconfigure(0, weight=4)  # Large chess board section
+        self.root.grid_columnconfigure(1, weight=3)  # Tabbed info panels
+        self.root.grid_rowconfigure(0, weight=1)     # Main content area
+        self.root.grid_rowconfigure(1, weight=0)     # Bottom info bar (fixed height)
 
     def _setup_layout(self):
-        """Setup the main layout with all widgets"""
+        """Setup the spacious new layout with all widgets"""
 
-        # Left panel - Board + Game Info
-        left_frame = tk.Frame(self.root, bg="#2B2B2B")
-        left_frame.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="nsew")
-        left_frame.grid_columnconfigure(0, weight=1)
-        left_frame.grid_rowconfigure(0, weight=3)  # Board gets most space
-        left_frame.grid_rowconfigure(1, weight=1)  # Game info smaller
-
-        # Chess board
-        board_frame = tk.Frame(left_frame, bg="#2B2B2B")
-        board_frame.grid(row=0, column=0, pady=(0, 3), sticky="nsew")
+        # Left section - Large Chess Board
+        board_frame = tk.Frame(self.root, bg="#2B2B2B")
+        board_frame.grid(row=0, column=0, padx=(15, 10), pady=(15, 15), sticky="nsew")
         board_frame.grid_columnconfigure(0, weight=1)
         board_frame.grid_rowconfigure(0, weight=1)
 
         self.chess_board = ChessBoardWidget(board_frame)
         self.chess_board.grid(row=0, column=0, sticky="nsew")
 
-        # Game info panel
-        self.game_info = GameInfoWidget(left_frame)
-        self.game_info.grid(row=1, column=0, sticky="nsew")
-
-        # Right panel - Logs + Move History + Statistics
+        # Right section - Tabbed Information Panels
         right_frame = tk.Frame(self.root, bg="#2B2B2B")
-        right_frame.grid(row=0, column=1, padx=(5, 10), pady=10, sticky="nsew")
+        right_frame.grid(row=0, column=1, padx=(10, 15), pady=(15, 15), sticky="nsew")
         right_frame.grid_columnconfigure(0, weight=1)
-        right_frame.grid_rowconfigure(0, weight=3)  # Logs get most space
-        right_frame.grid_rowconfigure(1, weight=2)  # Move history gets medium space
-        right_frame.grid_rowconfigure(2, weight=2)  # Statistics gets medium space
+        right_frame.grid_rowconfigure(0, weight=1)
 
-        # Log panel
-        self.log_panel = LogPanelWidget(right_frame)
-        self.log_panel.grid(row=0, column=0, pady=(0, 3), sticky="nsew")
+        # Create tabbed notebook
+        self.notebook = ttk.Notebook(right_frame)
+        self.notebook.grid(row=0, column=0, sticky="nsew")
 
-        # Move history panel
-        self.move_history = MoveHistoryWidget(right_frame)
-        self.move_history.grid(row=1, column=0, pady=(0, 3), sticky="nsew")
+        # Configure notebook style
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TNotebook", background="#2B2B2B", borderwidth=0)
+        style.configure("TNotebook.Tab", background="#404040", foreground="#FFFFFF",
+                       padding=[10, 5], font=("Arial", 10, "bold"))
+        style.map("TNotebook.Tab",
+                 background=[("selected", "#4A4A4A"), ("active", "#555555")],
+                 foreground=[("selected", "#FFFFFF"), ("active", "#FFFFFF")])
 
-        # Statistics panel
-        self.stats_panel = StatisticsPanelWidget(right_frame)
-        self.stats_panel.grid(row=2, column=0, sticky="nsew")
+        # Game Info Tab
+        game_info_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        game_info_frame.grid_columnconfigure(0, weight=1)
+        game_info_frame.grid_rowconfigure(0, weight=1)
+
+        self.game_info = GameInfoWidget(game_info_frame)
+        self.game_info.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.notebook.add(game_info_frame, text="Game Info")
+
+        # Move History Tab
+        move_history_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        move_history_frame.grid_columnconfigure(0, weight=1)
+        move_history_frame.grid_rowconfigure(0, weight=1)
+
+        self.move_history = MoveHistoryWidget(move_history_frame)
+        self.move_history.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.notebook.add(move_history_frame, text="Move History")
+
+        # Activity Log Tab
+        log_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        log_frame.grid_columnconfigure(0, weight=1)
+        log_frame.grid_rowconfigure(0, weight=1)
+
+        self.log_panel = LogPanelWidget(log_frame)
+        self.log_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.notebook.add(log_frame, text="Activity Log")
+
+        # Statistics Tab
+        stats_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        stats_frame.grid_columnconfigure(0, weight=1)
+        stats_frame.grid_rowconfigure(0, weight=1)
+
+        self.stats_panel = StatisticsPanelWidget(stats_frame)
+        self.stats_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.notebook.add(stats_frame, text="Statistics")
+
+        # Bottom status bar
+        self._create_status_bar()
+
+    def _create_status_bar(self):
+        """Create the bottom status bar"""
+        status_frame = tk.Frame(self.root, bg="#1A1A1A", relief="solid", bd=1)
+        status_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=15, pady=(0, 15))
+
+        # Status indicators
+        self.status_bot_mode = tk.Label(
+            status_frame,
+            text="Mode: AutoPlay",
+            font=("Arial", 9),
+            fg="#00DD88",
+            bg="#1A1A1A"
+        )
+        self.status_bot_mode.pack(side=tk.LEFT, padx=(10, 20))
+
+        self.status_connection = tk.Label(
+            status_frame,
+            text="Status: Ready",
+            font=("Arial", 9),
+            fg="#888888",
+            bg="#1A1A1A"
+        )
+        self.status_connection.pack(side=tk.LEFT, padx=(0, 20))
+
+        self.status_engine = tk.Label(
+            status_frame,
+            text="Engine: Stockfish",
+            font=("Arial", 9),
+            fg="#CCCCCC",
+            bg="#1A1A1A"
+        )
+        self.status_engine.pack(side=tk.LEFT, padx=(0, 20))
+
+        self.status_game = tk.Label(
+            status_frame,
+            text="Game: Waiting",
+            font=("Arial", 9),
+            fg="#CCCCCC",
+            bg="#1A1A1A"
+        )
+        self.status_game.pack(side=tk.RIGHT, padx=(20, 10))
+
+        # Initialize status based on config
+        self._update_initial_status()
+
+    def _update_initial_status(self):
+        """Update status bar with initial config values"""
+        if self.game_manager:
+            if self.game_manager.config_manager.is_autoplay_enabled:
+                self.status_bot_mode.configure(text="Mode: AutoPlay", fg="#00DD88")
+            else:
+                move_key = self.game_manager.config_manager.move_key
+                self.status_bot_mode.configure(text=f"Mode: Manual ({move_key})", fg="#FFB347")
+
+            engine_path = self.game_manager.config_manager.get("engine", "path", "Unknown")
+            engine_name = engine_path.split("/")[-1].split("\\")[-1] if engine_path != "Unknown" else "Unknown"
+            self.status_engine.configure(text=f"Engine: {engine_name}")
+
+    def update_status_connection(self, status: str, color: str = "#888888"):
+        """Update connection status"""
+        self.status_connection.configure(text=f"Status: {status}", fg=color)
+
+    def update_status_game(self, status: str, color: str = "#CCCCCC"):
+        """Update game status"""
+        self.status_game.configure(text=f"Game: {status}", fg=color)
 
     def _setup_callbacks(self):
         """Setup callbacks between components"""
@@ -99,8 +194,11 @@ class ChessBotGUI:
             # Register this GUI with the game manager for updates
             self.game_manager.set_gui_callback(self.update_from_game_manager)
 
-            # Auto-start the bot
-            self.root.after(1000, self._auto_start_bot)
+        # Auto-start the bot
+        self.root.after(1000, self._auto_start_bot)
+
+        # Update initial status
+        self._update_initial_status()
 
     def _auto_start_bot(self):
         """Auto-start the bot after GUI is loaded"""
@@ -137,6 +235,12 @@ class ChessBotGUI:
 
             elif update_type == "game_info":
                 self.update_game_info(update_data)
+                # Update status bar with game info
+                if "game_active" in update_data:
+                    if update_data["game_active"]:
+                        self.update_status_game("Active", "#00DD88")
+                    else:
+                        self.update_status_game("Waiting", "#888888")
 
             elif update_type == "move_played":
                 evaluation_str = self._format_evaluation_for_history(

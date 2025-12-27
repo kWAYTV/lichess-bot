@@ -36,12 +36,12 @@ class MoveHistoryWidget(tk.Frame):
         # Create frame for treeview and scrollbar
         self.tree_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
 
-        # Create treeview for moves
+        # Create treeview for moves - compact for tabbed layout
         self.tree = ttk.Treeview(
             self.tree_frame,
             columns=("move_num", "white", "black", "eval"),
             show="headings",
-            height=12,  # Good height for move history
+            height=15,  # Taller for tabbed layout
         )
 
         # Configure columns
