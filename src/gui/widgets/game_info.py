@@ -189,10 +189,8 @@ class GameInfoWidget(tk.Frame):
                 if "pv" in evaluation and evaluation["pv"]:
                     pv = evaluation["pv"]
                     if pv and len(pv) > 0:
-                        pv_moves = [str(m) for m in pv[:5]]  # Show first 5 moves
+                        pv_moves = [str(m) for m in pv[:4]]  # Show first 4 moves only
                         best_line = " ".join(pv_moves)
-                        if len(pv) > 5:
-                            best_line += " ..."
                         self.best_line_label.configure(text=f"Best line: {best_line}")
                     else:
                         self.best_line_label.configure(text="Best line: N/A")
