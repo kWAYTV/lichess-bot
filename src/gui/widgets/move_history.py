@@ -11,20 +11,24 @@ class MoveHistoryWidget(tk.Frame):
     """Widget displaying scrollable move history"""
 
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, bg="#2B2B2B", **kwargs)
+        super().__init__(parent, bg="#1e1e2e", **kwargs)
 
         # State
         self.moves: List[tuple] = []  # [(move_number, white_move, black_move, evaluation), ...]
         self.current_move_number = 0
         self.current_evaluation = None
 
+        # Monochromatic colors - only black, white, gray
+        self.bg_color = "#1a1a1a"  # Dark gray background
+        self.surface_color = "#2a2a2a"  # Slightly lighter surface
+        self.text_color = "#ffffff"  # Pure white text
+        self.secondary_text = "#cccccc"  # Light gray text
+
         self._create_widgets()
         self._setup_layout()
 
     def _create_widgets(self):
         """Create all history widgets"""
-
-        # Compact title for shared tab
         self.title_label = tk.Label(
             self,
             text="Moves",
@@ -33,10 +37,8 @@ class MoveHistoryWidget(tk.Frame):
             bg="#1A1A1A",
         )
 
-        # Create frame for treeview and scrollbar
         self.tree_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
 
-        # Create treeview for moves - very compact for shared tab
         self.tree = ttk.Treeview(
             self.tree_frame,
             columns=("move_num", "white", "black", "eval"),
@@ -94,11 +96,11 @@ class MoveHistoryWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Compact title
-        self.title_label.grid(row=0, column=0, pady=(2, 2), sticky="ew")
+        # Title
+        self.title_label.grid(row=0, column=0, pady=(0, 8), sticky="ew")
 
-        # Compact tree frame
-        self.tree_frame.grid(row=1, column=0, pady=(0, 2), padx=2, sticky="nsew")
+        # Sleek tree frame
+        self.tree_frame.grid(row=1, column=0, pady=(0, 8), sticky="nsew")
         self.tree_frame.grid_columnconfigure(0, weight=1)
         self.tree_frame.grid_rowconfigure(0, weight=1)
 
@@ -106,8 +108,8 @@ class MoveHistoryWidget(tk.Frame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.scrollbar.grid(row=0, column=1, sticky="ns")
 
-        # Compact status
-        self.status_label.grid(row=2, column=0, pady=(0, 2), sticky="ew")
+        # Status
+        self.status_label.grid(row=2, column=0, pady=(0, 0), sticky="ew")
 
     def add_move(self, move: chess.Move, move_number: int, is_white: bool, evaluation: str = ""):
         """Add a move to the history"""

@@ -16,20 +16,17 @@ class ChessBoardWidget(tk.Frame):
         self.base_size = 550  # Larger base board size
         self.orientation = "white"  # "white" or "black"
 
-        # Colors - Dark Mode Theme
-        self.light_square_color = "#4A4A4A"  # Dark gray for light squares
-        self.dark_square_color = "#2D2D2D"  # Very dark gray for dark squares
-        self.suggestion_color = "#00DD88"  # Softer green for suggestions
-        self.last_move_color = "#FFB347"  # Soft orange for last move highlight
-        self.square_outline_color = "#555555"  # Medium gray for square outlines
-        self.coordinate_color = "#AAAAAA"  # Light gray for coordinates
+        self.light_square_color = "#4a4a4a"
+        self.dark_square_color = "#2a2a2a"
+        self.suggestion_color = "#666666"
+        self.last_move_color = "#555555"
+        self.square_outline_color = "#404040"
+        self.coordinate_color = "#888888"
 
-        # State
         self.current_board = chess.Board()
         self.last_move = None
         self.suggestion_move = None
 
-        # Create the canvas
         self._create_canvas()
         self._draw_initial_board()
 

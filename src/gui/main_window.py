@@ -37,7 +37,7 @@ class ChessBotGUI:
         self.root.title("Lichess Chess Bot")
         self.root.geometry("1400x900")
         self.root.minsize(1200, 700)
-        self.root.configure(bg="#2B2B2B")
+        self.root.configure(bg="#1a1a1a")
 
         # Set window icon if available
         try:
@@ -55,7 +55,7 @@ class ChessBotGUI:
         """Setup the spacious new layout with all widgets"""
 
         # Left section - Large Chess Board
-        board_frame = tk.Frame(self.root, bg="#2B2B2B")
+        board_frame = tk.Frame(self.root, bg="#1a1a1a")
         board_frame.grid(row=0, column=0, padx=(15, 10), pady=(15, 15), sticky="nsew")
         board_frame.grid_columnconfigure(0, weight=1)
         board_frame.grid_rowconfigure(0, weight=1)
@@ -64,7 +64,7 @@ class ChessBotGUI:
         self.chess_board.grid(row=0, column=0, sticky="nsew")
 
         # Right section - Tabbed Information Panels
-        right_frame = tk.Frame(self.root, bg="#2B2B2B")
+        right_frame = tk.Frame(self.root, bg="#1a1a1a")
         right_frame.grid(row=0, column=1, padx=(10, 15), pady=(15, 15), sticky="nsew")
         right_frame.grid_columnconfigure(0, weight=1)
         right_frame.grid_rowconfigure(0, weight=1)
@@ -73,18 +73,18 @@ class ChessBotGUI:
         self.notebook = ttk.Notebook(right_frame)
         self.notebook.grid(row=0, column=0, sticky="nsew")
 
-        # Configure notebook style
+        # Configure notebook style - monochromatic
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("TNotebook", background="#2B2B2B", borderwidth=0)
-        style.configure("TNotebook.Tab", background="#404040", foreground="#FFFFFF",
-                       padding=[10, 5], font=("Arial", 10, "bold"))
+        style.configure("TNotebook", background="#1a1a1a", borderwidth=0)
+        style.configure("TNotebook.Tab", background="#2a2a2a", foreground="#ffffff",
+                       padding=[15, 8], font=("Segoe UI", 9, "bold"))
         style.map("TNotebook.Tab",
-                 background=[("selected", "#4A4A4A"), ("active", "#555555")],
-                 foreground=[("selected", "#FFFFFF"), ("active", "#FFFFFF")])
+                 background=[("selected", "#404040"), ("active", "#333333")],
+                 foreground=[("selected", "#ffffff"), ("active", "#ffffff")])
 
         # Game Info, Activity & History Tab
-        game_info_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        game_info_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         game_info_frame.grid_columnconfigure(0, weight=1)
         game_info_frame.grid_rowconfigure(0, weight=0)  # Game info - fixed height
         game_info_frame.grid_rowconfigure(1, weight=1)  # Activity log - flexible
@@ -105,7 +105,7 @@ class ChessBotGUI:
         self.notebook.add(game_info_frame, text="Game")
 
         # Statistics Tab
-        stats_frame = tk.Frame(self.notebook, bg="#1A1A1A")
+        stats_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         stats_frame.grid_columnconfigure(0, weight=1)
         stats_frame.grid_rowconfigure(0, weight=1)
 
@@ -118,45 +118,45 @@ class ChessBotGUI:
 
     def _create_status_bar(self):
         """Create the bottom status bar"""
-        status_frame = tk.Frame(self.root, bg="#1A1A1A", relief="solid", bd=1)
+        status_frame = tk.Frame(self.root, bg="#2a2a2a", relief="flat", borderwidth=1)
         status_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=15, pady=(0, 15))
 
         # Status indicators
         self.status_bot_mode = tk.Label(
             status_frame,
-            text="Mode: AutoPlay",
-            font=("Arial", 9),
-            fg="#00DD88",
-            bg="#1A1A1A"
+            text="🤖 AutoPlay",
+            font=("Segoe UI", 9),
+            fg="#cccccc",  # Light gray for active mode
+            bg="#2a2a2a"
         )
-        self.status_bot_mode.pack(side=tk.LEFT, padx=(10, 20))
+        self.status_bot_mode.pack(side=tk.LEFT, padx=(15, 25))
 
         self.status_connection = tk.Label(
             status_frame,
-            text="Status: Ready",
-            font=("Arial", 9),
-            fg="#888888",
-            bg="#1A1A1A"
+            text="● Ready",
+            font=("Segoe UI", 9),
+            fg="#888888",  # Medium gray for status
+            bg="#2a2a2a"
         )
-        self.status_connection.pack(side=tk.LEFT, padx=(0, 20))
+        self.status_connection.pack(side=tk.LEFT, padx=(0, 25))
 
         self.status_engine = tk.Label(
             status_frame,
-            text="Engine: Stockfish",
-            font=("Arial", 9),
-            fg="#CCCCCC",
-            bg="#1A1A1A"
+            text="⚙ Stockfish",
+            font=("Segoe UI", 9),
+            fg="#ffffff",  # White text
+            bg="#2a2a2a"
         )
-        self.status_engine.pack(side=tk.LEFT, padx=(0, 20))
+        self.status_engine.pack(side=tk.LEFT, padx=(0, 25))
 
         self.status_game = tk.Label(
             status_frame,
-            text="Game: Waiting",
-            font=("Arial", 9),
-            fg="#CCCCCC",
-            bg="#1A1A1A"
+            text="⏸ Waiting",
+            font=("Segoe UI", 9),
+            fg="#ffffff",  # White text
+            bg="#2a2a2a"
         )
-        self.status_game.pack(side=tk.RIGHT, padx=(20, 10))
+        self.status_game.pack(side=tk.RIGHT, padx=(25, 15))
 
         # Initialize status based on config
         self._update_initial_status()

@@ -11,18 +11,24 @@ class StatisticsPanelWidget(tk.Frame):
     """Widget displaying chess performance statistics"""
 
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, bg="#2B2B2B", **kwargs)
+        super().__init__(parent, bg="#1e1e2e", **kwargs)
 
         # State
         self.stats_data = None
+
+        # Monochromatic colors - only black, white, gray
+        self.bg_color = "#1a1a1a"  # Dark gray background
+        self.surface_color = "#2a2a2a"  # Slightly lighter surface
+        self.accent_color = "#404040"  # Medium gray accent
+        self.text_color = "#ffffff"  # Pure white text
+        self.secondary_text = "#cccccc"  # Light gray text
+        self.success_color = "#888888"  # Gray for success
 
         self._create_widgets()
         self._setup_layout()
 
     def _create_widgets(self):
         """Create all statistics widgets"""
-
-        # Title
         self.title_label = tk.Label(
             self,
             text="Performance Statistics",
@@ -31,48 +37,48 @@ class StatisticsPanelWidget(tk.Frame):
             bg="#2B2B2B",
         )
 
-        # Overall stats frame
-        self.overall_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
+        # Overall stats frame - sleek card
+        self.overall_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
         self.overall_title = tk.Label(
             self.overall_frame,
-            text="Overall Performance",
-            font=("Arial", 12, "bold"),
-            fg="#FFFFFF",
-            bg="#1A1A1A",
+            text="🏆 Overall Performance",
+            font=("Segoe UI", 10, "bold"),
+            fg=self.accent_color,
+            bg=self.surface_color,
         )
 
-        # Overall statistics labels
+        # Overall statistics labels with icons
         self.total_games_label = tk.Label(
             self.overall_frame,
-            text="Total Games: 0",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="🎮 Total Games: 0",
+            font=("Segoe UI", 9),
+            fg=self.text_color,
+            bg=self.surface_color,
         )
 
         self.win_rate_label = tk.Label(
             self.overall_frame,
-            text="Win Rate: 0%",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="🏅 Win Rate: 0%",
+            font=("Segoe UI", 9),
+            fg=self.success_color,
+            bg=self.surface_color,
         )
 
         self.avg_game_length_label = tk.Label(
             self.overall_frame,
-            text="Avg Game Length: 0 moves",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="⏱ Avg Game Length: 0 moves",
+            font=("Segoe UI", 9),
+            fg=self.secondary_text,
+            bg=self.surface_color,
         )
 
         self.avg_evaluation_label = tk.Label(
             self.overall_frame,
-            text="Avg Evaluation: N/A",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="📈 Avg Evaluation: N/A",
+            font=("Segoe UI", 9),
+            fg=self.text_color,
+            bg=self.surface_color,
         )
 
         # Recent games frame

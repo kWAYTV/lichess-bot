@@ -11,20 +11,26 @@ class GameInfoWidget(tk.Frame):
     """Widget displaying current game information and engine suggestions"""
 
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, bg="#2B2B2B", **kwargs)
+        super().__init__(parent, bg="#1e1e2e", **kwargs)
 
         # State
         self.current_move = None
         self.our_color = "white"
         self.game_active = False
 
+        # Monochromatic colors - only black, white, gray
+        self.bg_color = "#1a1a1a"  # Dark gray background
+        self.surface_color = "#2a2a2a"  # Slightly lighter surface
+        self.accent_color = "#404040"  # Medium gray accent
+        self.text_color = "#ffffff"  # Pure white text
+        self.secondary_text = "#cccccc"  # Light gray text
+        self.success_color = "#888888"  # Gray for success
+
         self._create_widgets()
         self._setup_layout()
 
     def _create_widgets(self):
         """Create all info widgets"""
-
-        # Title
         self.title_label = tk.Label(
             self,
             text="Game Status",
@@ -33,75 +39,75 @@ class GameInfoWidget(tk.Frame):
             bg="#1A1A1A",
         )
 
-        # Game status frame
-        self.status_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
+        # Game status frame - sleek card
+        self.status_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
         self.color_label = tk.Label(
             self.status_frame,
-            text="Playing as: Unknown",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="♟ Playing as: Unknown",
+            font=("Segoe UI", 9),
+            fg=self.text_color,
+            bg=self.surface_color,
         )
 
         self.turn_label = tk.Label(
             self.status_frame,
-            text="Turn: White to move",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="⟳ Turn: White to move",
+            font=("Segoe UI", 9),
+            fg=self.secondary_text,
+            bg=self.surface_color,
         )
 
         self.move_number_label = tk.Label(
             self.status_frame,
-            text="Move: 1",
-            font=("Arial", 10),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="🔢 Move: 1",
+            font=("Segoe UI", 9),
+            fg=self.text_color,
+            bg=self.surface_color,
         )
 
-        # Engine suggestion frame
-        self.engine_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
+        # Engine suggestion frame - sleek card
+        self.engine_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
         self.engine_title = tk.Label(
             self.engine_frame,
-            text="Engine Suggestion",
-            font=("Arial", 12, "bold"),
-            fg="#FFFFFF",
-            bg="#1A1A1A",
+            text="🤖 Engine Analysis",
+            font=("Segoe UI", 10, "bold"),
+            fg=self.accent_color,
+            bg=self.surface_color,
         )
 
         self.suggestion_label = tk.Label(
             self.engine_frame,
             text="No suggestion",
-            font=("Arial", 11, "bold"),
-            fg="#888888",
-            bg="#1A1A1A",
+            font=("Segoe UI", 10, "bold"),
+            fg=self.text_color,
+            bg=self.surface_color,
         )
 
         self.evaluation_label = tk.Label(
             self.engine_frame,
-            text="Evaluation: N/A",
-            font=("Arial", 10, "bold"),
-            fg="#00DD88",
-            bg="#1A1A1A",
+            text="📊 Evaluation: N/A",
+            font=("Segoe UI", 9),
+            fg=self.success_color,
+            bg=self.surface_color,
         )
 
         self.depth_label = tk.Label(
             self.engine_frame,
-            text="Depth: N/A",
-            font=("Arial", 9),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
+            text="🔍 Depth: N/A",
+            font=("Segoe UI", 8),
+            fg=self.secondary_text,
+            bg=self.surface_color,
         )
 
         self.best_line_label = tk.Label(
             self.engine_frame,
-            text="Best line: N/A",
-            font=("Arial", 9),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
-            wraplength=200,
+            text="🎯 Best line: N/A",
+            font=("Segoe UI", 8),
+            fg=self.secondary_text,
+            bg=self.surface_color,
+            wraplength=250,
             justify="left",
         )
 
@@ -109,18 +115,14 @@ class GameInfoWidget(tk.Frame):
         """Setup widget layout - vertical for side panel placement"""
         self.grid_columnconfigure(0, weight=1)
 
-        # Title
         self.title_label.grid(row=0, column=0, pady=(3, 4), sticky="ew")
 
-        # Game status - very compact
         self.status_frame.grid(row=1, column=0, pady=(0, 3), padx=1, sticky="ew")
         self.status_frame.grid_columnconfigure(0, weight=1)
 
         self.color_label.grid(row=0, column=0, pady=2, padx=6, sticky="w")
         self.turn_label.grid(row=1, column=0, pady=1, padx=6, sticky="w")
         self.move_number_label.grid(row=2, column=0, pady=2, padx=6, sticky="w")
-
-        # Engine info - compact
         self.engine_frame.grid(row=2, column=0, pady=(0, 3), padx=1, sticky="ew")
         self.engine_frame.grid_columnconfigure(0, weight=1)
 

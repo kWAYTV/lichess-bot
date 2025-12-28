@@ -10,7 +10,7 @@ class LogPanelWidget(tk.Frame):
     """Panel for displaying real-time logs and status messages"""
 
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, bg="#2B2B2B", **kwargs)
+        super().__init__(parent, bg="#1e1e2e", **kwargs)
 
         # Configuration
         self.max_lines = 300  # Reduced from 500 to reduce memory usage
@@ -24,98 +24,110 @@ class LogPanelWidget(tk.Frame):
         self.min_log_interval = 0.1  # Minimum 100ms between similar logs
         self.recent_messages = {}  # Track recent messages to prevent duplicates
 
-        # Colors for different log levels
+        # Monochromatic colors - only black, white, gray
+        self.bg_color = "#1a1a1a"  # Dark gray background
+        self.surface_color = "#2a2a2a"  # Slightly lighter surface
+        self.accent_color = "#404040"  # Medium gray accent
+        self.text_color = "#ffffff"  # Pure white text
+        self.secondary_text = "#cccccc"  # Light gray text
+
+        # Modern log level colors
         self.level_colors: Dict[str, str] = {
-            "trace": "#666666",
-            "debug": "#666666",
-            "info": "#FFFFFF",
-            "success": "#28A745",
-            "warning": "#FFC107",
-            "error": "#DC3545",
-            "critical": "#DC3545",
+            "trace": "#6c7086",
+            "debug": "#6c7086",
+            "info": self.text_color,
+            "success": "#a6e3a1",
+            "warning": "#f9e2af",
+            "error": "#f38ba8",
+            "critical": "#f38ba8",
         }
 
         self._create_widgets()
         self._setup_layout()
 
-        # No welcome message for compact layout
-
     def _create_widgets(self):
         """Create all log panel widgets"""
 
-        # Compact header with controls
-        self.header_frame = tk.Frame(self, bg="#1A1A1A")
+        # Sleek header
+        self.header_frame = tk.Frame(self, bg=self.surface_color)
 
         self.title_label = tk.Label(
             self.header_frame,
-            text="Activity Log",
-            font=("Arial", 10, "bold"),
-            fg="#FFFFFF",
-            bg="#1A1A1A",
+            text="📋 Activity Log",
+            font=("Segoe UI", 9, "bold"),
+            fg=self.secondary_text,
+            bg=self.surface_color,
         )
 
         self.clear_button = tk.Button(
             self.header_frame,
-            text="Clear",
+            text="🗑",
             command=self._clear_logs,
-            font=("Arial", 8),
-            bg="#404040",
-            fg="#FFFFFF",
+            font=("Segoe UI", 8),
+            bg=self.bg_color,
+            fg=self.text_color,
+            activebackground=self.accent_color,
+            activeforeground=self.text_color,
             relief="flat",
-            bd=1,
-            padx=8,
-            pady=1,
+            borderwidth=0,
+            padx=6,
+            pady=2,
         )
 
         self.auto_scroll_var = tk.BooleanVar(value=True)
         self.auto_scroll_checkbox = tk.Checkbutton(
             self.header_frame,
-            text="Auto",
+            text="🔄 Auto",
             variable=self.auto_scroll_var,
             command=self._toggle_auto_scroll,
-            font=("Arial", 8),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
-            selectcolor="#404040",
+            font=("Segoe UI", 7),
+            fg=self.secondary_text,
+            bg=self.surface_color,
+            selectcolor=self.accent_color,
+            activebackground=self.surface_color,
+            activeforeground=self.text_color,
         )
 
         # Log level filter checkbox
         self.show_debug_var = tk.BooleanVar(value=False)
         self.debug_checkbox = tk.Checkbutton(
             self.header_frame,
-            text="Debug",
+            text="🐛 Debug",
             variable=self.show_debug_var,
             command=self._toggle_debug_logs,
-            font=("Arial", 8),
-            fg="#CCCCCC",
-            bg="#1A1A1A",
-            selectcolor="#404040",
+            font=("Segoe UI", 7),
+            fg=self.secondary_text,
+            bg=self.surface_color,
+            selectcolor=self.accent_color,
+            activebackground=self.surface_color,
+            activeforeground=self.text_color,
         )
 
-        # Log display area
-        self.log_frame = tk.Frame(self, bg="#1A1A1A", relief="solid", bd=1)
+        # Sleek log display area
+        self.log_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
-        # Text widget with scrollbar - very compact for shared tab
+        # Text widget with sleek styling - larger font for readability
         self.log_text = tk.Text(
             self.log_frame,
             wrap=tk.WORD,
             state=tk.DISABLED,
-            bg="#1A1A1A",
-            fg="#FFFFFF",
-            insertbackground="#FFFFFF",
-            selectbackground="#404040",
-            font=("Consolas", 7),  # Even smaller font for space
+            bg=self.surface_color,
+            fg=self.text_color,
+            insertbackground=self.text_color,
+            selectbackground=self.accent_color,
+            font=("JetBrains Mono", 9),  # Larger monospace font for better readability
             relief="flat",
             borderwidth=0,
-            padx=4,  # Minimal padding
-            pady=2,
+            padx=8,
+            pady=4,
         )
 
         self.scrollbar = tk.Scrollbar(
             self.log_frame,
             command=self.log_text.yview,
-            bg="#404040",
-            troughcolor="#2B2B2B",
+            bg=self.surface_color,
+            troughcolor=self.bg_color,
+            borderwidth=0,
         )
 
         self.log_text.configure(yscrollcommand=self.scrollbar.set)
