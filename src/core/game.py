@@ -279,11 +279,23 @@ class GameManager:
             self._waiting_for_user_ack = True
             logger.info("Game complete. Waiting for user to acknowledge result.")
 
-            # Wait for user to acknowledge the result before starting new game
+            # Wait for user to acknowledge the result OR detect new game started
+            # Store current URL to detect when a new game starts
+            game_end_url = self.browser_manager.driver.current_url
             while self._waiting_for_user_ack:
-                sleep(0.5)  # Poll every 500ms
+                sleep(0.3)  # Poll every 300ms
+                
+                # Check if we've navigated to a new game (URL changed to different game ID)
+                try:
+                    current_url = self.browser_manager.driver.current_url
+                    if current_url != game_end_url and self._looks_like_game_url(current_url):
+                        logger.info("New game detected while waiting for acknowledgment - auto-acknowledging")
+                        self._waiting_for_user_ack = False
+                        break
+                except Exception:
+                    pass  # Browser might be in transition, ignore
 
-            logger.info("User acknowledged result. Starting new game.")
+            logger.info("Proceeding to new game detection.")
 
         # Start new game - this will either succeed (starting a new loop)
         # or fail (returning to main app loop)
@@ -294,6 +306,21 @@ class GameManager:
         return (self.board.turn and our_color == "W") or (
             not self.board.turn and our_color == "B"
         )
+
+    def _looks_like_game_url(self, url: str) -> bool:
+        """Check if URL looks like a Lichess game URL"""
+        if not url:
+            return False
+        # Exclude non-game URLs
+        excluded = ["/tournament", "/study", "/training", "/lobby", "/swiss"]
+        if any(ex in url for ex in excluded):
+            return False
+        # Game IDs are typically 8+ alphanumeric chars at the end
+        parts = url.rstrip("/").split("/")
+        if parts:
+            last_part = parts[-1].split("?")[0]  # Remove query params
+            return len(last_part) >= 8 and last_part.isalnum()
+        return False
 
     def _handle_our_turn(self, move_number: int, our_color: str) -> int:
         """Handle our turn logic"""
