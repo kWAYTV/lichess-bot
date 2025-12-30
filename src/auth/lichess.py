@@ -71,17 +71,15 @@ class LichessAuth:
             logger.debug("Clicked sign-in button")
 
             # Enter credentials
-            lichess_config = self.config_manager.lichess_config
             username_field = driver.find_element(By.ID, "form3-username")
             password_field = driver.find_element(By.ID, "form3-password")
             logger.debug("Found username and password fields")
 
-            # Use standardized lowercase keys with backward compatibility
-            username_value = lichess_config.get(
-                "username", lichess_config.get("Username", "")
+            username_value = self.config_manager.get_with_aliases(
+                "lichess", ["username", "Username"], ""
             )
-            password_value = lichess_config.get(
-                "password", lichess_config.get("Password", "")
+            password_value = self.config_manager.get_with_aliases(
+                "lichess", ["password", "Password"], ""
             )
 
             username_field.send_keys(username_value)

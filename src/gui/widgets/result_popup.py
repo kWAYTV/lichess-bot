@@ -198,10 +198,7 @@ def show_game_result(result_data: dict, parent: tk.Tk = None, on_close: Callable
             pass
     
     if parent is None:
-        # Fallback to console output if no Tk available
-        score = result_data.get("score", "Game completed")
-        reason = result_data.get("reason", "")
-        print(f"Game Result: {score} - {reason}")
+        # Fallback - no GUI available, just call the callback
         if on_close:
             on_close()
         return None

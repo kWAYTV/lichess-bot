@@ -109,7 +109,7 @@ class ChessBotGUI:
         stats_frame.grid_columnconfigure(0, weight=1)
         stats_frame.grid_rowconfigure(0, weight=1)
 
-        self.stats_panel = StatisticsPanelWidget(stats_frame)
+        self.stats_panel = StatisticsPanelWidget(stats_frame, export_callback=self._export_pgn)
         self.stats_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.notebook.add(stats_frame, text="Statistics")
 
@@ -351,6 +351,12 @@ class ChessBotGUI:
             self.root.after(0, GameResultPopup.close_existing)
         except Exception:
             pass
+
+    def _export_pgn(self, filename: str) -> bool:
+        """Export games to PGN file via stats manager"""
+        if self.game_manager and hasattr(self.game_manager, 'stats_manager'):
+            return self.game_manager.stats_manager.export_pgn(filename)
+        return False
 
     def run(self):
         """Start the GUI main loop"""

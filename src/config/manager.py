@@ -65,6 +65,7 @@ class ConfigManager:
             "arrow": "true",
             "auto-play": "true",
             "log-level": "INFO",
+            "gui-enabled": "true",
         }
         self.config["humanization"] = {
             "min-delay": "0.3",
@@ -87,6 +88,23 @@ class ConfigManager:
             return self.config[section].get(key, fallback)
         except KeyError:
             logger.warning(f"Section '{section}' not found in config")
+            return fallback
+
+    def get_with_aliases(self, section: str, keys: List[str], fallback: Any = None) -> Any:
+        """Get configuration value trying multiple key aliases (for backward compat)
+        
+        Args:
+            section: Config section name
+            keys: List of keys to try in order (e.g., ["skill-level", "skill level", "Skill Level"])
+            fallback: Value to return if none of the keys are found
+        """
+        try:
+            section_data = self.config[section]
+            for key in keys:
+                if key in section_data:
+                    return section_data[key]
+            return fallback
+        except KeyError:
             return fallback
 
     def get_section(self, section: str) -> Dict[str, str]:
@@ -183,6 +201,12 @@ class ConfigManager:
             logger.warning(f"Invalid log level '{level}', using INFO")
             return "INFO"
         return level
+
+    @property
+    def is_gui_enabled(self) -> bool:
+        """Check if GUI is enabled (vs headless mode)"""
+        value = self.get("general", "gui-enabled", "true")
+        return value.lower() == "true"
 
     def get_humanization_delay(self, delay_type: str) -> tuple[float, float]:
         """Get min/max delays for humanization"""

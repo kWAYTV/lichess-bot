@@ -26,9 +26,7 @@ class ChessEngine:
     def _initialize_engine(self) -> None:
         """Initialize the chess engine"""
         try:
-            engine_config = self.config_manager.engine_config
-            # Use standardized lowercase keys with backward compatibility
-            engine_path = engine_config.get("path", engine_config.get("Path", ""))
+            engine_path = self.config_manager.get_with_aliases("engine", ["path", "Path"], "")
 
             if not engine_path:
                 raise ValueError("Engine path not found in config")
@@ -36,16 +34,13 @@ class ChessEngine:
             self.engine = chess.engine.SimpleEngine.popen_uci(engine_path)
             logger.debug(f"Started chess engine: {engine_path}")
 
-            # Configure engine options using standardized hyphenated keys
-            skill_level = int(
-                engine_config.get(
-                    "skill-level",
-                    engine_config.get(
-                        "skill level", engine_config.get("Skill Level", 14)
-                    ),
-                )
-            )
-            hash_size = int(engine_config.get("hash", engine_config.get("Hash", 2048)))
+            # Configure engine options
+            skill_level = int(self.config_manager.get_with_aliases(
+                "engine", ["skill-level", "skill level", "Skill Level"], 14
+            ))
+            hash_size = int(self.config_manager.get_with_aliases(
+                "engine", ["hash", "Hash"], 2048
+            ))
 
             options = {
                 "Skill Level": skill_level,
@@ -77,12 +72,9 @@ class ChessEngine:
             self._initialize_engine()
 
         if depth is None:
-            # Use standardized hyphenated key with backward compatibility
-            depth = int(
-                self.config_manager.get(
-                    "engine", "depth", self.config_manager.get("engine", "Depth", 5)
-                )
-            )
+            depth = int(self.config_manager.get_with_aliases(
+                "engine", ["depth", "Depth"], 5
+            ))
 
         logger.debug(f"Calculating best move (depth: {depth})")
 
@@ -143,15 +135,12 @@ class ChessEngine:
             return
 
         try:
-            engine_config = self.config_manager.engine_config
-            
-            skill_level = int(
-                engine_config.get(
-                    "skill-level",
-                    engine_config.get("skill level", engine_config.get("Skill Level", 14)),
-                )
-            )
-            hash_size = int(engine_config.get("hash", engine_config.get("Hash", 2048)))
+            skill_level = int(self.config_manager.get_with_aliases(
+                "engine", ["skill-level", "skill level", "Skill Level"], 14
+            ))
+            hash_size = int(self.config_manager.get_with_aliases(
+                "engine", ["hash", "Hash"], 2048
+            ))
 
             # Only reconfigure if values changed
             if skill_level != self._current_skill_level or hash_size != self._current_hash_size:

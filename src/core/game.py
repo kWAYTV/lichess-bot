@@ -351,8 +351,8 @@ class GameManager:
                 return move_number
 
         # Get best move from engine
-        engine_depth = self.config_manager.get(
-            "engine", "depth", self.config_manager.get("engine", "Depth", 5)
+        engine_depth = self.config_manager.get_with_aliases(
+            "engine", ["depth", "Depth"], 5
         )
         advanced_humanized_delay("engine thinking", self.config_manager, "thinking")
 
