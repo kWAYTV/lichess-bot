@@ -18,7 +18,8 @@
 
 1. Download from [GitHub Releases](https://github.com/kWAYTV/helping-hand/releases)
 2. Extract and configure `config.ini` (see `config.example.ini`)
-3. Run the executable
+3. Export your Lichess cookies (see [Authentication](#authentication))
+4. Run the executable
 
 ### Option 2: From Source
 
@@ -34,21 +35,29 @@ pip install -r requirements.txt
 - [GeckoDriver](https://github.com/mozilla/geckodriver/releases)
 - [xPath Finder Extension](https://addons.mozilla.org/en-US/firefox/addon/xpath_finder/) (.xpi file)
 
+## Authentication
+
+This bot uses cookie-based authentication. Export your Lichess cookies using one of these browser extensions:
+
+- [Chrome Extension](https://chrome.google.com/webstore/detail/%E3%82%AF%E3%83%83%E3%82%AD%E3%83%BCjson%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%87%BA%E5%8A%9B-for-puppet/nmckokihipjgplolmcmjakknndddifde)
+- [Firefox Extension](https://addons.mozilla.org/en-US/firefox/addon/%E3%82%AF%E3%83%83%E3%82%AD%E3%83%BCjson%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%87%BA%E5%8A%9B-for-puppeteer/)
+
+**Steps:**
+1. Log in to [lichess.org](https://lichess.org) in your browser
+2. Use the extension to export cookies while on the Lichess site
+3. The extension will save a file named `lichess.org.cookies.json`
+4. Place this file in the `deps/` folder
+
 ## Configuration
 
 Essential `config.ini` settings:
 
 ```ini
-[lichess]
-username = your_username
-password = your_password
-totp-secret = your_2fa_secret  # Optional
-
 [engine]
 depth = 5          # Analysis depth (1-20)
 skill-level = 14   # Engine strength (0-20)
 
-[bot]
+[general]
 auto-play = true   # Auto-execute moves
 move-key = end     # Manual trigger key
 log-level = INFO   # Logging verbosity

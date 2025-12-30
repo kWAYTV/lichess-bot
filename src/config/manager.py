@@ -45,11 +45,6 @@ class ConfigManager:
             "hash": "2048",
             "skill-level": "14",
         }
-        self.config["lichess"] = {
-            "username": "user",
-            "password": "pass",
-            "totp-secret": "",
-        }
         self.config["general"] = {
             "move-key": "end",
             "arrow": "true",
@@ -104,11 +99,6 @@ class ConfigManager:
         return self.get_section("engine")
 
     @property
-    def lichess_config(self) -> Dict[str, str]:
-        """Get Lichess configuration"""
-        return self.get_section("lichess")
-
-    @property
     def general_config(self) -> Dict[str, str]:
         """Get general configuration"""
         return self.get_section("general")
@@ -135,10 +125,6 @@ class ConfigManager:
         value = self.get("general", "arrow", self.get("general", "Arrow", "true"))
         return value.lower() == "true"
 
-    @property
-    def totp_secret(self) -> str:
-        """Get the TOTP secret"""
-        return self.get("lichess", "totp-secret", "")
 
     @property
     def humanization_config(self) -> Dict[str, str]:

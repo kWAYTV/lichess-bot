@@ -89,7 +89,7 @@ class GameManager:
                 f"Found saved cookies ({cookie_info['count']} cookies, {cookie_info['file_size']} bytes)"
             )
         else:
-            logger.debug("No saved cookies found - will use username/password login")
+            logger.warning("No cookies found - please export cookies to deps/lichess.org.cookies.json")
 
         # Sign in
         if not self.lichess_auth.sign_in():

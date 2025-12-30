@@ -3,5 +3,4 @@ loguru
 configparser
 chess
 pynput
-pyotp
 pyinstaller
