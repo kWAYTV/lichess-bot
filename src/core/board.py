@@ -12,6 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
+from ..constants import Selectors
 from ..core.browser import BrowserManager
 from ..utils.debug import DebugUtils
 from ..utils.helpers import advanced_humanized_delay, humanized_delay
@@ -34,66 +35,19 @@ class BoardHandler:
 
     def wait_for_game_ready(self) -> bool:
         """Wait for game to be ready and return True if successful"""
-        # Waiting for game setup silently
-
         try:
-            # First, wait to be in an actual game URL (not lobby)
-            max_url_wait = 60  # Wait up to 60 seconds for game to start
-            url_wait_count = 0
-            while url_wait_count < max_url_wait:
-                current_url = self.driver.current_url
-                # Check if we're in an actual game (not lobby, not tournament, etc.)
-                if (
-                    current_url != "https://www.lichess.org/"
-                    and current_url != "https://lichess.org/"
-                    and "/tournament" not in current_url
-                    and "/study" not in current_url
-                    and "/training" not in current_url
-                    and len(current_url.split("/")[-1]) >= 8
-                ):  # Game IDs are typically 8+ chars
-                    break
-                sleep(1)
-                url_wait_count += 1
-
-            if url_wait_count >= max_url_wait:
-                logger.error("Timeout waiting for game to start - still on lobby page")
+            # Wait for game URL (not lobby)
+            if not self._wait_for_game_url():
                 return False
 
-            # Wait for actual game board container (not lobby TV games)
+            # Wait for game board
             WebDriverWait(self.driver, 30).until(
-                ec.presence_of_element_located(
-                    (By.CSS_SELECTOR, "main.round cg-container")
-                )
+                ec.presence_of_element_located(Selectors.GAME_BOARD_CONTAINER)
             )
             logger.debug("Game board found")
 
-            # Try multiple selectors for move input box - but be more specific
-            move_input_selectors = [
-                (By.CLASS_NAME, "ready"),  # Most common game input selector
-                (By.CSS_SELECTOR, "main.round input"),  # Input within game container
-                (By.CSS_SELECTOR, "input.ready"),  # Ready input specifically
-                (
-                    By.XPATH,
-                    "//main[contains(@class,'round')]//input",
-                ),  # Input in round/game main
-            ]
-
-            move_input_found = False
-            for selector_type, selector_value in move_input_selectors:
-                try:
-                    WebDriverWait(self.driver, 10).until(
-                        ec.presence_of_element_located((selector_type, selector_value))
-                    )
-                    logger.debug(
-                        f"Move input found using {selector_type}: {selector_value}"
-                    )
-                    move_input_found = True
-                    break
-                except:
-                    continue
-
-            if not move_input_found:
-                logger.error("Could not find move input element in game interface")
+            # Wait for move input
+            if not self._wait_for_move_input():
                 return False
 
             logger.debug("Game interface ready")
@@ -103,79 +57,91 @@ class BoardHandler:
             logger.error(f"Failed to wait for game ready: {e}")
             return False
 
+    def _wait_for_game_url(self, timeout: int = 60) -> bool:
+        """Wait until we're on a game URL"""
+        for _ in range(timeout):
+            url = self.driver.current_url
+            if self._is_game_url(url):
+                return True
+            sleep(1)
+
+        logger.error("Timeout waiting for game to start - still on lobby page")
+        return False
+
+    def _is_game_url(self, url: str) -> bool:
+        """Check if URL is an actual game"""
+        if url in (Selectors.LICHESS_URL + "/", Selectors.LICHESS_URL_ALT + "/"):
+            return False
+
+        for pattern in Selectors.NON_GAME_URL_PATTERNS:
+            if pattern in url:
+                return False
+
+        # Game IDs are typically 8+ chars
+        return len(url.split("/")[-1]) >= 8
+
+    def _wait_for_move_input(self) -> bool:
+        """Wait for move input element"""
+        for selector_type, selector_value in Selectors.MOVE_INPUT_SELECTORS:
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    ec.presence_of_element_located((selector_type, selector_value))
+                )
+                logger.debug(f"Move input found: {selector_value}")
+                return True
+            except:
+                continue
+
+        logger.error("Could not find move input element")
+        return False
+
     def determine_player_color(self) -> str:
         """Determine if we're playing as White or Black"""
-        board_set_for_white = self.browser_manager.check_exists_by_class(
-            "orientation-white"
+        is_white = self.browser_manager.check_exists_by_class(
+            Selectors.ORIENTATION_WHITE
         )
-
-        if board_set_for_white:
-            logger.info("Playing as WHITE")
-            return "W"
-        else:
-            logger.info("Playing as BLACK")
-            return "B"
+        color = "W" if is_white else "B"
+        logger.info(f"Playing as {'WHITE' if is_white else 'BLACK'}")
+        return color
 
     @element_retry(max_retries=3, delay=1.0)
     def get_move_input_handle(self):
         """Get the move input element"""
-        # Try multiple selectors for better reliability - same as wait_for_game_ready
-        move_input_selectors = [
-            (By.CLASS_NAME, "ready"),  # Most common game input selector
-            (By.CSS_SELECTOR, "main.round input"),  # Input within game container
-            (By.CSS_SELECTOR, "input.ready"),  # Ready input specifically
-            (
-                By.XPATH,
-                "//main[contains(@class,'round')]//input",
-            ),  # Input in round/game main
-        ]
-
-        for selector_type, selector_value in move_input_selectors:
+        for selector_type, selector_value in Selectors.MOVE_INPUT_SELECTORS:
             try:
                 WebDriverWait(self.driver, 10).until(
                     ec.presence_of_element_located((selector_type, selector_value))
                 )
                 element = self.driver.find_element(selector_type, selector_value)
-                logger.debug(
-                    f"Move input handle found using {selector_type}: {selector_value}"
-                )
+                logger.debug(f"Move input handle found: {selector_value}")
                 return element
-            except Exception:
+            except:
                 continue
 
-        logger.error("Could not find move input handle with any selector")
+        logger.error("Could not find move input handle")
         return None
 
     @move_retry(max_retries=3, delay=0.5)
     def find_move_by_alternatives(self, move_number: int):
         """Try alternative selectors to find moves"""
-        # Try finding all moves and get by index (most reliable)
+        # Try class-based lookup first (most reliable)
         try:
-            elements = self.driver.find_elements(By.CLASS_NAME, "kwdb")
+            elements = self.driver.find_elements(
+                By.CLASS_NAME, Selectors.MOVE_LIST_CLASS
+            )
             if len(elements) >= move_number:
-                element = elements[move_number - 1]  # 0-based indexing
-                move_text = element.text.strip()
-                if move_text:  # Only return if there's actual text
-                    # Move found
+                element = elements[move_number - 1]
+                if element.text.strip():
                     return element
         except:
             pass
 
-        # Alternative selectors to try (only if class method fails)
-        selectors = [
-            f"//kwdb[{move_number}]",  # Shortest XPath
-            f"//rm6/l4x/kwdb[{move_number}]",  # Medium XPath
-            f"/html/body/div[2]/main/div[1]/rm6/l4x/kwdb[{move_number}]",  # Original
-        ]
-
-        for selector in selectors:
+        # Try XPath alternatives
+        for xpath in Selectors.get_move_xpaths(move_number):
             try:
-                element = self.driver.find_element(By.XPATH, selector)
-                move_text = element.text.strip()
-                if move_text:  # Only return if there's actual text
-                    logger.debug(
-                        f"Found move {move_number}: '{move_text}' using {selector}"
-                    )
+                element = self.driver.find_element(By.XPATH, xpath)
+                if element.text.strip():
+                    logger.debug(f"Found move {move_number} via XPath")
                     return element
             except:
                 continue
@@ -185,67 +151,42 @@ class BoardHandler:
     def get_previous_moves(self, board: chess.Board) -> int:
         """Get all previous moves and update board, return current move number"""
         logger.debug("Getting previous moves from board")
-        temp_move_number = 1
+        move_number = 1
 
-        # First check if there are ANY moves at all
-        first_move = self.find_move_by_alternatives(1)
-        if not first_move:
-            logger.debug(
-                "No moves found on board - this appears to be the start of the game"
-            )
-            return 1  # Start from move 1
+        # Check if any moves exist
+        if not self.find_move_by_alternatives(1):
+            logger.debug("No moves found - start of game")
+            return 1
 
-        while temp_move_number < 999:  # Safety limit
-            move_element = self.find_move_by_alternatives(temp_move_number)
-
-            if move_element:
-                move_text = move_element.text.strip()
-                if (
-                    not move_text or move_text == "..."
-                ):  # Skip empty or placeholder moves
-                    temp_move_number += 1
-                    continue
-
-                logger.debug(f"Found previous move {temp_move_number}: {move_text}")
-                try:
-                    board.push_san(move_text)
-                    temp_move_number += 1
-                except Exception as e:
-                    logger.error(f"Invalid move notation '{move_text}': {e}")
-                    self.debug_utils.save_debug_info(
-                        self.driver, temp_move_number, board
-                    )
-                    break
-            else:
-                logger.debug(
-                    f"No more previous moves found. Total moves processed: {temp_move_number - 1}"
-                )
-                # Only save debug info if we have moves but can't parse them
-                if temp_move_number == 1:
-                    logger.debug("No moves on board - starting fresh game")
-                elif (
-                    temp_move_number <= 3
-                ):  # If we can't find early moves (might be selector issue)
-                    logger.warning(
-                        "Could not find expected moves, investigating selectors"
-                    )
-                    self.debug_utils.debug_move_list_structure(self.driver)
-                    self.debug_utils.save_debug_info(
-                        self.driver, temp_move_number, board
-                    )
+        while move_number < 999:
+            element = self.find_move_by_alternatives(move_number)
+            if not element:
                 break
 
-        return temp_move_number
+            move_text = element.text.strip()
+            if not move_text or move_text == "...":
+                move_number += 1
+                continue
+
+            try:
+                board.push_san(move_text)
+                logger.debug(f"Previous move {move_number}: {move_text}")
+                move_number += 1
+            except Exception as e:
+                logger.error(f"Invalid move '{move_text}': {e}")
+                self.debug_utils.save_debug_info(self.driver, move_number, board)
+                break
+
+        logger.debug(f"Total moves processed: {move_number - 1}")
+        return move_number
 
     def check_for_move(self, move_number: int) -> Optional[str]:
-        """Check if a move exists at the given position and return move text"""
-        move_element = self.find_move_by_alternatives(move_number)
-
-        if move_element:
-            move_text = move_element.text.strip()
-            if move_text and move_text != "...":  # Exclude empty and placeholder moves
-                return move_text
-
+        """Check if a move exists at the given position"""
+        element = self.find_move_by_alternatives(move_number)
+        if element:
+            text = element.text.strip()
+            if text and text != "...":
+                return text
         return None
 
     def validate_and_push_move(
@@ -257,19 +198,19 @@ class BoardHandler:
     ) -> bool:
         """Validate and push a move to the board"""
         try:
-            # Check if move is legal in current position
             test_move = board.parse_san(move_text)
-            if test_move in board.legal_moves:
-                uci = board.push_san(move_text)
-                move_desc = "us" if is_our_move else "opponent"
-                logger.success(f"{ceil(move_number / 2)}. {uci.uci()} [{move_desc}]")
-                return True
-            else:
-                logger.warning(f"Move '{move_text}' is not legal in current position")
+            if test_move not in board.legal_moves:
+                logger.warning(f"Move '{move_text}' is not legal")
                 self.debug_utils.save_debug_info(self.driver, move_number, board)
                 return False
+
+            uci = board.push_san(move_text)
+            who = "us" if is_our_move else "opponent"
+            logger.success(f"{ceil(move_number / 2)}. {uci.uci()} [{who}]")
+            return True
+
         except Exception as e:
-            logger.error(f"Invalid move notation '{move_text}': {e}")
+            logger.error(f"Invalid move '{move_text}': {e}")
             self.debug_utils.save_debug_info(self.driver, move_number, board)
             return False
 
@@ -278,7 +219,7 @@ class BoardHandler:
         """Execute a move through the interface"""
         logger.debug(f"Executing move: {move}")
 
-        # Advanced humanized delay before making the move
+        # Humanized delay
         if self.config_manager:
             advanced_humanized_delay("move execution", self.config_manager, "moving")
         else:
@@ -286,127 +227,107 @@ class BoardHandler:
 
         self.clear_arrow()
 
-        # Get fresh move handle to avoid stale element reference
         move_handle = self.get_move_input_handle()
         if not move_handle:
-            logger.error("Failed to get fresh move input handle")
             raise Exception("Could not find move input handle")
 
-        # Advanced humanized typing delay
+        # Input delay
         if self.config_manager:
             advanced_humanized_delay("move input", self.config_manager, "base")
         else:
             humanized_delay(0.3, 0.8, "move input")
 
-        # Execute move input with safe execution
-        def _send_move_input():
+        # Execute
+        def _send_input():
             move_handle.send_keys(Keys.RETURN)
             move_handle.clear()
 
-            # Type move with slight delay and additional jitter
             if self.config_manager:
-                advanced_humanized_delay("typing move", self.config_manager, "base")
+                advanced_humanized_delay("typing", self.config_manager, "base")
             else:
-                humanized_delay(0.2, 0.5, "typing move")
+                humanized_delay(0.2, 0.5, "typing")
 
             move_handle.send_keys(str(move))
 
-        safe_execute(_send_move_input, log_errors=True)
+        safe_execute(_send_input, log_errors=True)
 
     def clear_arrow(self) -> None:
         """Clear any arrows on the board"""
         self.browser_manager.execute_script(
-            """
-            var g = document.getElementsByTagName("g")[0];
-            if (g) {
-                g.textContent = "";
-            }
-            """
+            'var g = document.getElementsByTagName("g")[0]; if (g) g.textContent = "";'
         )
 
     def draw_arrow(self, move: chess.Move, our_color: str) -> None:
         """Draw an arrow showing the suggested move"""
         move_str = str(move)
-        src_square = move_str[:2]
-        dst_square = move_str[2:]
-        logger.debug(f"Drawing move arrow: {src_square} → {dst_square}")
+        src, dst = move_str[:2], move_str[2:]
+        logger.debug(f"Drawing arrow: {src} → {dst}")
 
         transform = self._get_piece_transform(move, our_color)
 
-        move_str = str(move)
-        src = str(move_str[:2])
-        dst = str(move_str[2:])
-
-        board_style = self.driver.find_element(
-            By.XPATH, "/html/body/div[2]/main/div[1]/div[1]/div/cg-container"
-        ).get_attribute("style")
+        board_style = self.driver.find_element(*Selectors.BOARD_STYLE_CONTAINER).get_attribute("style")
         board_size = re.search(r"\d+", board_style).group()
 
+        self._inject_arrow_svg(transform, board_size, src, dst)
+
+    def _inject_arrow_svg(
+        self, transform: List[float], board_size: str, src: str, dst: str
+    ) -> None:
+        """Inject arrow SVG into the page"""
         self.browser_manager.execute_script(
             """
-            var x1 = arguments[0];
-            var y1 = arguments[1];
-            var x2 = arguments[2];
-            var y2 = arguments[3];
-            var size = arguments[4];
-            var src = arguments[5];
-            var dst = arguments[6];
+            var x1 = arguments[0], y1 = arguments[1], x2 = arguments[2], y2 = arguments[3];
+            var size = arguments[4], src = arguments[5], dst = arguments[6];
 
-            defs = document.getElementsByTagName("defs")[0];
-            child_defs = document.getElementsByTagName("marker")[0];
+            var defs = document.getElementsByTagName("defs")[0];
+            var marker = document.getElementsByTagName("marker")[0];
 
-            if (child_defs == null) {
-                child_defs = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-                child_defs.setAttribute("id", "arrowhead-g");
-                child_defs.setAttribute("orient", "auto");
-                child_defs.setAttribute("markerWidth", "4");
-                child_defs.setAttribute("markerHeight", "8");
-                child_defs.setAttribute("refX", "2.05");
-                child_defs.setAttribute("refY", "2.01");
-                child_defs.setAttribute("cgKey", "g");
+            if (!marker) {
+                marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+                marker.setAttribute("id", "arrowhead-g");
+                marker.setAttribute("orient", "auto");
+                marker.setAttribute("markerWidth", "4");
+                marker.setAttribute("markerHeight", "8");
+                marker.setAttribute("refX", "2.05");
+                marker.setAttribute("refY", "2.01");
                 
-                path = document.createElement('path')
+                var path = document.createElement('path');
                 path.setAttribute("d", "M0,0 V4 L3,2 Z");
                 path.setAttribute("fill", "#15781B");
-                child_defs.appendChild(path);
-                defs.appendChild(child_defs);
+                marker.appendChild(path);
+                defs.appendChild(marker);
             }
 
-            g = document.getElementsByTagName("g")[0];
+            var g = document.getElementsByTagName("g")[0];
             
-            // Create the main arrow line
-            var child_g = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            child_g.setAttribute("stroke","#15781B");
-            child_g.setAttribute("stroke-width","0.15625");
-            child_g.setAttribute("stroke-linecap","round");
-            child_g.setAttribute("marker-end","url(#arrowhead-g)");
-            child_g.setAttribute("opacity","1");
-            child_g.setAttribute("x1", x1);
-            child_g.setAttribute("y1", y1);
-            child_g.setAttribute("x2", x2);
-            child_g.setAttribute("y2", y2);
-            child_g.setAttribute("cgHash", `${size}, ${size},` + src + `,` + dst + `,green`);
-            g.appendChild(child_g);
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute("stroke", "#15781B");
+            line.setAttribute("stroke-width", "0.15625");
+            line.setAttribute("stroke-linecap", "round");
+            line.setAttribute("marker-end", "url(#arrowhead-g)");
+            line.setAttribute("opacity", "1");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            g.appendChild(line);
             
-            // Add subtle destination indicator (small dot)
-            var destIndicator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            destIndicator.setAttribute("cx", x2);
-            destIndicator.setAttribute("cy", y2);
-            destIndicator.setAttribute("r", "0.08");
-            destIndicator.setAttribute("fill", "#FFD700");
-            destIndicator.setAttribute("fill-opacity", "0.9");
-            destIndicator.setAttribute("stroke", "#15781B");
-            destIndicator.setAttribute("stroke-width", "0.02");
-            destIndicator.setAttribute("cgHash", `${size}, ${size},` + src + `,` + dst + `,destination`);
-            g.appendChild(destIndicator);
+            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute("cx", x2);
+            dot.setAttribute("cy", y2);
+            dot.setAttribute("r", "0.08");
+            dot.setAttribute("fill", "#FFD700");
+            dot.setAttribute("fill-opacity", "0.9");
+            dot.setAttribute("stroke", "#15781B");
+            dot.setAttribute("stroke-width", "0.02");
+            g.appendChild(dot);
             
-            // Add very subtle pulsing to destination
-            var pulseAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            pulseAnim.setAttribute("attributeName", "r");
-            pulseAnim.setAttribute("values", "0.08;0.12;0.08");
-            pulseAnim.setAttribute("dur", "2s");
-            pulseAnim.setAttribute("repeatCount", "indefinite");
-            destIndicator.appendChild(pulseAnim);
+            var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            pulse.setAttribute("attributeName", "r");
+            pulse.setAttribute("values", "0.08;0.12;0.08");
+            pulse.setAttribute("dur", "2s");
+            pulse.setAttribute("repeatCount", "indefinite");
+            dot.appendChild(pulse);
             """,
             transform[0],
             transform[1],
@@ -419,90 +340,31 @@ class BoardHandler:
 
     def _get_piece_transform(self, move: chess.Move, our_color: str) -> List[float]:
         """Calculate arrow coordinates for the move"""
-        rank_values_w = [
-            ("a", -3.5),
-            ("b", -2.5),
-            ("c", -1.5),
-            ("d", -0.5),
-            ("e", 0.5),
-            ("f", 1.5),
-            ("g", 2.5),
-            ("h", 3.5),
-        ]
-        file_values_w = [
-            (1, 3.5),
-            (2, 2.5),
-            (3, 1.5),
-            (4, 0.5),
-            (5, -0.5),
-            (6, -1.5),
-            (7, -2.5),
-            (8, -3.5),
-        ]
+        # Coordinate mappings
+        ranks_w = {"a": -3.5, "b": -2.5, "c": -1.5, "d": -0.5, "e": 0.5, "f": 1.5, "g": 2.5, "h": 3.5}
+        files_w = {1: 3.5, 2: 2.5, 3: 1.5, 4: 0.5, 5: -0.5, 6: -1.5, 7: -2.5, 8: -3.5}
+        ranks_b = {"a": 3.5, "b": 2.5, "c": 1.5, "d": 0.5, "e": -0.5, "f": -1.5, "g": -2.5, "h": -3.5}
+        files_b = {1: -3.5, 2: -2.5, 3: -1.5, 4: -0.5, 5: 0.5, 6: 1.5, 7: 2.5, 8: 3.5}
 
-        rank_values_b = [
-            ("a", 3.5),
-            ("b", 2.5),
-            ("c", 1.5),
-            ("d", 0.5),
-            ("e", -0.5),
-            ("f", -1.5),
-            ("g", -2.5),
-            ("h", -3.5),
-        ]
-        file_values_b = [
-            (1, -3.5),
-            (2, -2.5),
-            (3, -1.5),
-            (4, -0.5),
-            (5, 0.5),
-            (6, 1.5),
-            (7, 2.5),
-            (8, 3.5),
-        ]
+        ranks = ranks_w if our_color == "W" else ranks_b
+        files = files_w if our_color == "W" else files_b
 
         move_str = str(move)
-        _from = str(move_str[:2])
-        _to = str(move_str[2:])
+        src, dst = move_str[:2], move_str[2:]
 
-        # Get source coordinates
-        for i, (rank, value) in enumerate(
-            rank_values_w if our_color == "W" else rank_values_b
-        ):
-            if rank == _from[0]:
-                src_x = value
-                break
-
-        for i, (file, value) in enumerate(
-            file_values_w if our_color == "W" else file_values_b
-        ):
-            if file == int(_from[1]):
-                src_y = value
-                break
-
-        # Get destination coordinates
-        for i, (rank, value) in enumerate(
-            rank_values_w if our_color == "W" else rank_values_b
-        ):
-            if rank == _to[0]:
-                dst_x = value
-                break
-
-        for i, (file, value) in enumerate(
-            file_values_w if our_color == "W" else file_values_b
-        ):
-            if file == int(_to[1]):
-                dst_y = value
-                break
-
-        return [src_x, src_y, dst_x, dst_y]
+        return [
+            ranks[src[0]],
+            files[int(src[1])],
+            ranks[dst[0]],
+            files[int(dst[1])],
+        ]
 
     def is_game_over(self) -> bool:
-        """Check if game is over (follow-up element exists)"""
+        """Check if game is over"""
         return bool(
             safe_execute(
                 self.browser_manager.check_exists_by_class,
-                "follow-up",
+                Selectors.GAME_OVER_CLASS,
                 default_return=False,
                 log_errors=False,
             )

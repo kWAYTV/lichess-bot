@@ -1,11 +1,8 @@
-"""
-Chess Bot - Professional modular implementation
-"""
+"""Chess Bot - Professional modular implementation"""
 
-__author__ = "Chess Bot"
+__author__ = "kWAY"
 
-# Import main components
 from .config.manager import ConfigManager
-from .core.game import GameManager
+from .game import GameManager
 
 __all__ = ["GameManager", "ConfigManager"]

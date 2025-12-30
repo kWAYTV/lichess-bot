@@ -10,10 +10,12 @@ from ..utils.helpers import get_stockfish_path
 
 
 class ConfigManager:
-    """Singleton configuration manager for the chess bot"""
+    """Singleton configuration manager"""
 
     _instance: Optional["ConfigManager"] = None
     _initialized: bool = False
+
+    VALID_LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
     def __new__(cls) -> "ConfigManager":
         if cls._instance is None:
@@ -28,17 +30,17 @@ class ConfigManager:
             ConfigManager._initialized = True
 
     def _load_or_create_config(self) -> None:
-        """Load existing config or create default one"""
+        """Load existing config or create default"""
         if os.path.isfile(self._config_path):
             self.config.read(self._config_path)
-            logger.debug("Loaded existing config.ini")
+            logger.debug("Loaded config.ini")
         else:
-            logger.debug("No config.ini found, creating default config")
+            logger.debug("Creating default config.ini")
             self._create_default_config()
             self.config.read(self._config_path)
 
     def _create_default_config(self) -> None:
-        """Create default configuration file"""
+        """Create default configuration"""
         self.config["engine"] = {
             "path": get_stockfish_path(),
             "depth": "5",
@@ -50,6 +52,7 @@ class ConfigManager:
             "arrow": "true",
             "auto-play": "true",
             "log-level": "INFO",
+            "gui-enabled": "true",
         }
         self.config["humanization"] = {
             "min-delay": "0.3",
@@ -63,118 +66,92 @@ class ConfigManager:
             "firefox-binary-path": "",
         }
 
-        with open(self._config_path, "w") as configfile:
-            self.config.write(configfile)
+        with open(self._config_path, "w") as f:
+            self.config.write(f)
 
     def get(self, section: str, key: str, fallback: Any = None) -> Any:
-        """Get configuration value with fallback"""
+        """Get config value"""
         try:
             return self.config[section].get(key, fallback)
         except KeyError:
-            logger.warning(f"Section '{section}' not found in config")
+            logger.warning(f"Section '{section}' not found")
             return fallback
 
     def get_section(self, section: str) -> Dict[str, str]:
-        """Get entire configuration section"""
+        """Get entire section"""
         try:
             return dict(self.config[section])
         except KeyError:
-            logger.warning(f"Section '{section}' not found in config")
+            logger.warning(f"Section '{section}' not found")
             return {}
 
     def set(self, section: str, key: str, value: str) -> None:
-        """Set configuration value"""
+        """Set config value"""
         if section not in self.config:
             self.config[section] = {}
         self.config[section][key] = value
 
     def save(self) -> None:
-        """Save configuration to file"""
-        with open(self._config_path, "w") as configfile:
-            self.config.write(configfile)
+        """Save config to file"""
+        with open(self._config_path, "w") as f:
+            self.config.write(f)
+
+    # Properties
 
     @property
     def engine_config(self) -> Dict[str, str]:
-        """Get engine configuration"""
         return self.get_section("engine")
 
     @property
     def general_config(self) -> Dict[str, str]:
-        """Get general configuration"""
         return self.get_section("general")
 
     @property
-    def is_autoplay_enabled(self) -> bool:
-        """Check if autoplay is enabled"""
-        # Check both new hyphenated and old mixed case for backward compatibility
-        value = self.get(
-            "general", "auto-play", self.get("general", "AutoPlay", "false")
-        )
-        return value.lower() == "true"
-
-    @property
-    def move_key(self) -> str:
-        """Get the move key"""
-        # Check both new hyphenated and old mixed case for backward compatibility
-        return self.get("general", "move-key", self.get("general", "MoveKey", "end"))
-
-    @property
-    def show_arrow(self) -> bool:
-        """Check if arrow should be shown"""
-        # Check both new hyphenated and old mixed case for backward compatibility
-        value = self.get("general", "arrow", self.get("general", "Arrow", "true"))
-        return value.lower() == "true"
-
-
-    @property
     def humanization_config(self) -> Dict[str, str]:
-        """Get humanization configuration"""
         return self.get_section("humanization")
 
     @property
     def browser_config(self) -> Dict[str, str]:
-        """Get browser configuration"""
         return self.get_section("browser")
 
     @property
+    def is_autoplay_enabled(self) -> bool:
+        return self.get("general", "auto-play", "false").lower() == "true"
+
+    @property
+    def move_key(self) -> str:
+        return self.get("general", "move-key", "end")
+
+    @property
+    def show_arrow(self) -> bool:
+        return self.get("general", "arrow", "true").lower() == "true"
+
+    @property
     def firefox_binary_path(self) -> str:
-        """Get the Firefox binary path"""
         return self.get("browser", "firefox-binary-path", "")
 
     @property
     def log_level(self) -> str:
-        """Get the log level"""
         level = self.get("general", "log-level", "INFO").upper()
-        # Validate log level
-        valid_levels = [
-            "TRACE",
-            "DEBUG",
-            "INFO",
-            "SUCCESS",
-            "WARNING",
-            "ERROR",
-            "CRITICAL",
-        ]
-        if level not in valid_levels:
+        if level not in self.VALID_LOG_LEVELS:
             logger.warning(f"Invalid log level '{level}', using INFO")
             return "INFO"
         return level
 
     def get_humanization_delay(self, delay_type: str) -> tuple[float, float]:
-        """Get min/max delays for humanization"""
-        config = self.humanization_config
-        if delay_type == "base":
-            min_delay = float(config.get("min-delay", "0.3"))
-            max_delay = float(config.get("max-delay", "1.8"))
-        elif delay_type == "moving":
-            min_delay = float(config.get("moving-min-delay", "0.5"))
-            max_delay = float(config.get("moving-max-delay", "2.5"))
-        elif delay_type == "thinking":
-            min_delay = float(config.get("thinking-min-delay", "0.8"))
-            max_delay = float(config.get("thinking-max-delay", "3.0"))
-        else:
-            # Default to base delays
-            min_delay = float(config.get("min-delay", "0.3"))
-            max_delay = float(config.get("max-delay", "1.8"))
-
-        return min_delay, max_delay
+        """Get delay range for humanization"""
+        cfg = self.humanization_config
+        delays = {
+            "base": ("min-delay", "max-delay", 0.3, 1.8),
+            "moving": ("moving-min-delay", "moving-max-delay", 0.5, 2.5),
+            "thinking": ("thinking-min-delay", "thinking-max-delay", 0.8, 3.0),
+        }
+        
+        min_key, max_key, default_min, default_max = delays.get(
+            delay_type, delays["base"]
+        )
+        
+        return (
+            float(cfg.get(min_key, default_min)),
+            float(cfg.get(max_key, default_max)),
+        )
