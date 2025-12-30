@@ -10,12 +10,11 @@ from loguru import logger
 class StatisticsPanelWidget(tk.Frame):
     """Widget displaying chess performance statistics"""
 
-    def __init__(self, parent, export_callback: callable = None, **kwargs):
+    def __init__(self, parent, **kwargs):
         super().__init__(parent, bg="#1e1e2e", **kwargs)
 
         # State
         self.stats_data = None
-        self.export_callback = export_callback
 
         # Monochromatic colors - only black, white, gray
         self.bg_color = "#1a1a1a"  # Dark gray background
@@ -252,7 +251,7 @@ class StatisticsPanelWidget(tk.Frame):
                         from datetime import datetime
                         dt = datetime.fromisoformat(game["start_time"])
                         date_str = dt.strftime("%m/%d %H:%M")
-                    except Exception:
+                    except:
                         pass
 
                 # Color code results
@@ -291,14 +290,9 @@ class StatisticsPanelWidget(tk.Frame):
             )
 
             if filename:
-                if self.export_callback:
-                    success = self.export_callback(filename)
-                    if success:
-                        self.status_label.configure(text=f"Exported to {filename}", fg="#88FF88")
-                    else:
-                        self.status_label.configure(text="Export failed", fg="#FF8888")
-                else:
-                    self.status_label.configure(text="Export not available", fg="#888888")
+                # Note: This would need access to the statistics manager
+                # For now, just show a placeholder message
+                self.status_label.configure(text=f"PGN export to {filename} not yet implemented", fg="#888888")
             else:
                 self.status_label.configure(text="Export cancelled", fg="#888888")
 

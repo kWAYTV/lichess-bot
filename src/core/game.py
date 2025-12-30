@@ -17,8 +17,10 @@ from ..utils.debug import DebugUtils
 from ..utils.helpers import advanced_humanized_delay
 from ..utils.resilience import (
     BrowserRecoveryManager,
+    browser_retry,
     safe_execute,
     validate_game_state,
+    with_browser_recovery,
 )
 
 
@@ -94,19 +96,9 @@ class GameManager:
             logger.error("Failed to sign in to Lichess")
             return
 
-        # Main game loop - keeps running games until stopped
+        # Start game loop
         logger.info("Waiting for game to start")
-        while self._running:
-            try:
-                self.start_new_game()
-                # After game ends, wait a bit before looking for next game
-                sleep(1)
-            except Exception as e:
-                logger.error(f"Game loop error: {e}")
-                if not self.browser_recovery_manager.attempt_browser_recovery():
-                    logger.error("Cannot recover - exiting game loop")
-                    break
-                sleep(2)
+        self.start_new_game()
 
     def start_new_game(self) -> None:
         """Start a new game with enhanced error handling"""
@@ -287,60 +279,21 @@ class GameManager:
             self._waiting_for_user_ack = True
             logger.info("Game complete. Waiting for user to acknowledge result.")
 
-            # Wait for user to acknowledge the result OR detect new game started
-            # Store current URL to detect when a new game starts
-            game_end_url = self.browser_manager.driver.current_url
+            # Wait for user to acknowledge the result before starting new game
             while self._waiting_for_user_ack:
-                sleep(0.3)  # Poll every 300ms
-                
-                # Check if we've navigated to a new game (URL changed to different game ID)
-                try:
-                    current_url = self.browser_manager.driver.current_url
-                    if current_url != game_end_url and self._looks_like_game_url(current_url):
-                        logger.info("New game detected - auto-closing result popup")
-                        self._waiting_for_user_ack = False
-                        # Close the popup via GUI callback
-                        self._notify_gui({"type": "close_result_popup"})
-                        break
-                except Exception:
-                    pass  # Browser might be in transition, ignore
+                sleep(0.5)  # Poll every 500ms
 
-            logger.debug("Proceeding to new game detection.")
+            logger.info("User acknowledged result. Starting new game.")
 
-        # Don't call start_new_game() here - let the game loop in start() handle it
-        # This prevents the popup loop when the old game board is still displayed
+        # Start new game - this will either succeed (starting a new loop)
+        # or fail (returning to main app loop)
+        self.start_new_game()
 
     def _is_our_turn(self, our_color: str) -> bool:
         """Check if it's our turn to move"""
         return (self.board.turn and our_color == "W") or (
             not self.board.turn and our_color == "B"
         )
-
-    def _notify_move_played(self, move: chess.Move, move_number: int) -> None:
-        """Notify GUI of a move being played (reduces duplication)"""
-        is_white = (move_number % 2) == 1
-        self._notify_gui({"type": "board_update", "board": self.board, "last_move": move})
-        self._notify_gui({
-            "type": "move_played",
-            "move": move,
-            "move_number": move_number,
-            "is_white": is_white,
-        })
-
-    def _looks_like_game_url(self, url: str) -> bool:
-        """Check if URL looks like a Lichess game URL"""
-        if not url:
-            return False
-        # Exclude non-game URLs
-        excluded = ["/tournament", "/study", "/training", "/lobby", "/swiss"]
-        if any(ex in url for ex in excluded):
-            return False
-        # Game IDs are typically 8+ alphanumeric chars at the end
-        parts = url.rstrip("/").split("/")
-        if parts:
-            last_part = parts[-1].split("?")[0]  # Remove query params
-            return len(last_part) >= 8 and last_part.isalnum()
-        return False
 
     def _handle_our_turn(self, move_number: int, our_color: str) -> int:
         """Handle our turn logic"""
@@ -352,16 +305,26 @@ class GameManager:
             if self.board_handler.validate_and_push_move(
                 self.board, move_text, move_number, True
             ):
+                # Get the last move that was pushed
                 last_move = self.board.peek() if self.board.move_stack else None
                 if last_move:
-                    self._notify_move_played(last_move, move_number)
+                    # Determine if it was a white or black move
+                    is_white = (move_number % 2) == 1
+                    self._notify_gui(
+                        {
+                            "type": "move_played",
+                            "move": last_move,
+                            "move_number": move_number,
+                            "is_white": is_white,
+                        }
+                    )
                 return move_number + 1
             else:
                 return move_number
 
         # Get best move from engine
-        engine_depth = self.config_manager.get_with_aliases(
-            "engine", ["depth", "Depth"], 5
+        engine_depth = self.config_manager.get(
+            "engine", "depth", self.config_manager.get("engine", "Depth", 5)
         )
         advanced_humanized_delay("engine thinking", self.config_manager, "thinking")
 
@@ -416,7 +379,24 @@ class GameManager:
 
         self.board_handler.execute_move(move, move_number)
         self.board.push(move)
-        self._notify_move_played(move, move_number)
+
+        # Determine if it was a white or black move
+        is_white = (move_number % 2) == 1
+
+        # Notify GUI of board update
+        self._notify_gui(
+            {"type": "board_update", "board": self.board, "last_move": move}
+        )
+
+        # Notify GUI of move played for history
+        self._notify_gui(
+            {
+                "type": "move_played",
+                "move": move,
+                "move_number": move_number,
+                "is_white": is_white,
+            }
+        )
 
         return move_number + 1
 
@@ -446,7 +426,24 @@ class GameManager:
             self._current_suggestion = None
             self._arrow_drawn = False
 
-            self._notify_move_played(move, move_number)
+            # Determine if it was a white or black move
+            is_white = (move_number % 2) == 1
+
+            # Notify GUI of board update
+            self._notify_gui(
+                {"type": "board_update", "board": self.board, "last_move": move}
+            )
+
+            # Notify GUI of move played for history
+            self._notify_gui(
+                {
+                    "type": "move_played",
+                    "move": move,
+                    "move_number": move_number,
+                    "is_white": is_white,
+                }
+            )
+
             return move_number + 1
         else:
             # Just suggesting - show the move and wait
@@ -475,9 +472,32 @@ class GameManager:
             if self.board_handler.validate_and_push_move(
                 self.board, move_text, move_number, False
             ):
+                # Get the last move from board stack (it was just pushed)
                 last_move = self.board.peek() if self.board.move_stack else None
+
+                # Determine if it was a white or black move
+                is_white = (move_number % 2) == 1
+
+                # Notify GUI of board update
+                self._notify_gui(
+                    {
+                        "type": "board_update",
+                        "board": self.board,
+                        "last_move": last_move,
+                    }
+                )
+
+                # Notify GUI of move played for history
                 if last_move:
-                    self._notify_move_played(last_move, move_number)
+                    self._notify_gui(
+                        {
+                            "type": "move_played",
+                            "move": last_move,
+                            "move_number": move_number,
+                            "is_white": is_white,
+                        }
+                    )
+
                 return move_number + 1
 
         return move_number

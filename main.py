@@ -44,9 +44,6 @@ class GUILogHandler:
 
 def main():
     """Main entry point for the chess bot"""
-    gui = None
-    game_manager = None
-    
     try:
         # Set up signal handler for graceful shutdown
         signal.signal(signal.SIGINT, signal_handler)
@@ -54,43 +51,45 @@ def main():
         # Clear screen and start
         clear_screen()
 
-        # Get config
+        # Get log level from config first
         config_manager = ConfigManager()
         log_level = config_manager.log_level
-        gui_enabled = config_manager.is_gui_enabled
 
-        # Set up logging
+        # Create GUI log handler for dual output
+        gui_log_handler = GUILogHandler()
+
+        # Set up logging with both console and GUI output
         logger.remove()
-        logger.add(sys.stderr, level=log_level)
+        logger.add(sys.stderr, level=log_level)  # Console logging
 
-        # Initialize game manager
+        # Add GUI logging with error handling for PyInstaller compatibility
+        try:
+            logger.add(
+                gui_log_handler.write, level=log_level, colorize=False
+            )  # GUI logging
+        except Exception as e:
+            # Fallback to console-only logging if GUI handler fails
+            logger.warning(f"Could not set up GUI logging: {e}")
+            logger.info("Continuing with console-only logging")
+
+        # Initialize and start the game manager
         game_manager = GameManager()
+
+        # Initialize and setup GUI
+        gui = ChessBotGUI(game_manager)
+        gui_log_handler.set_gui(gui)
 
         # Log mode info
         if config_manager.is_autoplay_enabled:
             logger.info("AutoPlay MODE: Bot will make moves automatically")
         else:
             move_key = config_manager.move_key
-            logger.info(f"Suggestion MODE: Bot will suggest moves (press '{move_key}' to execute)")
+            logger.info(
+                f"Suggestion MODE: Bot will suggest moves (press '{move_key}' to execute)"
+            )
 
-        if gui_enabled:
-            # GUI mode - create GUI log handler for dual output
-            gui_log_handler = GUILogHandler()
-            try:
-                logger.add(gui_log_handler.write, level=log_level, colorize=False)
-            except Exception as e:
-                logger.warning(f"Could not set up GUI logging: {e}")
-
-            # Initialize and setup GUI
-            gui = ChessBotGUI(game_manager)
-            gui_log_handler.set_gui(gui)
-
-            # Start the GUI main loop (this will block)
-            gui.run()
-        else:
-            # Headless mode - run game manager directly
-            logger.info("Running in headless mode (gui-enabled = false)")
-            game_manager.start()
+        # Start the GUI main loop (this will block)
+        gui.run()
 
     except KeyboardInterrupt:
         logger.info("Application interrupted by user")
@@ -98,18 +97,24 @@ def main():
         logger.error(f"Unexpected error: {e}")
         raise
     finally:
-        # Cleanup resources
-        if game_manager:
+        # Enhanced cleanup with better error handling
+        if "game_manager" in locals():
             try:
                 game_manager.cleanup()
             except Exception as cleanup_error:
                 logger.error(f"Error during cleanup: {cleanup_error}")
                 # Force cleanup critical resources
                 try:
-                    if hasattr(game_manager, "browser_manager") and game_manager.browser_manager:
-                        if hasattr(game_manager.browser_manager, "driver") and game_manager.browser_manager.driver:
+                    if (
+                        hasattr(game_manager, "browser_manager")
+                        and game_manager.browser_manager
+                    ):
+                        if (
+                            hasattr(game_manager.browser_manager, "driver")
+                            and game_manager.browser_manager.driver
+                        ):
                             game_manager.browser_manager.driver.quit()
-                except Exception:
+                except:
                     pass
 
 

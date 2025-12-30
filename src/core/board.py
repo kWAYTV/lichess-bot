@@ -3,7 +3,7 @@
 import re
 from math import ceil
 from time import sleep
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import chess
 from loguru import logger
@@ -16,20 +16,6 @@ from ..core.browser import BrowserManager
 from ..utils.debug import DebugUtils
 from ..utils.helpers import advanced_humanized_delay, humanized_delay
 from ..utils.resilience import element_retry, move_retry, safe_execute
-
-# Selectors for finding the move input element (in priority order)
-MOVE_INPUT_SELECTORS: List[Tuple[str, str]] = [
-    (By.CLASS_NAME, "ready"),
-    (By.CSS_SELECTOR, "main.round input"),
-    (By.CSS_SELECTOR, "input.ready"),
-    (By.XPATH, "//main[contains(@class,'round')]//input"),
-]
-
-# Coordinate mappings for arrow drawing
-RANK_VALUES_WHITE = {"a": -3.5, "b": -2.5, "c": -1.5, "d": -0.5, "e": 0.5, "f": 1.5, "g": 2.5, "h": 3.5}
-FILE_VALUES_WHITE = {1: 3.5, 2: 2.5, 3: 1.5, 4: 0.5, 5: -0.5, 6: -1.5, 7: -2.5, 8: -3.5}
-RANK_VALUES_BLACK = {"a": 3.5, "b": 2.5, "c": 1.5, "d": 0.5, "e": -0.5, "f": -1.5, "g": -2.5, "h": -3.5}
-FILE_VALUES_BLACK = {1: -3.5, 2: -2.5, 3: -1.5, 4: -0.5, 5: 0.5, 6: 1.5, 7: 2.5, 8: 3.5}
 
 
 class BoardHandler:
@@ -51,20 +37,7 @@ class BoardHandler:
         # Waiting for game setup silently
 
         try:
-            # First, if we're on a finished game, wait for it to go away
-            # This prevents detecting the old game board as a new game
-            max_gameover_wait = 30
-            gameover_wait_count = 0
-            while gameover_wait_count < max_gameover_wait:
-                if not self.is_game_over():
-                    break
-                sleep(1)
-                gameover_wait_count += 1
-            
-            if gameover_wait_count >= max_gameover_wait:
-                logger.warning("Still on finished game - waiting for user to start new game")
-            
-            # Wait to be in an actual game URL (not lobby)
+            # First, wait to be in an actual game URL (not lobby)
             max_url_wait = 60  # Wait up to 60 seconds for game to start
             url_wait_count = 0
             while url_wait_count < max_url_wait:
@@ -78,9 +51,7 @@ class BoardHandler:
                     and "/training" not in current_url
                     and len(current_url.split("/")[-1]) >= 8
                 ):  # Game IDs are typically 8+ chars
-                    # Also verify game is not over (user may have clicked rematch)
-                    if not self.is_game_over():
-                        break
+                    break
                 sleep(1)
                 url_wait_count += 1
 
@@ -96,17 +67,29 @@ class BoardHandler:
             )
             logger.debug("Game board found")
 
-            # Try multiple selectors for move input box
+            # Try multiple selectors for move input box - but be more specific
+            move_input_selectors = [
+                (By.CLASS_NAME, "ready"),  # Most common game input selector
+                (By.CSS_SELECTOR, "main.round input"),  # Input within game container
+                (By.CSS_SELECTOR, "input.ready"),  # Ready input specifically
+                (
+                    By.XPATH,
+                    "//main[contains(@class,'round')]//input",
+                ),  # Input in round/game main
+            ]
+
             move_input_found = False
-            for selector_type, selector_value in MOVE_INPUT_SELECTORS:
+            for selector_type, selector_value in move_input_selectors:
                 try:
                     WebDriverWait(self.driver, 10).until(
                         ec.presence_of_element_located((selector_type, selector_value))
                     )
-                    logger.debug(f"Move input found using {selector_type}: {selector_value}")
+                    logger.debug(
+                        f"Move input found using {selector_type}: {selector_value}"
+                    )
                     move_input_found = True
                     break
-                except Exception:
+                except:
                     continue
 
             if not move_input_found:
@@ -136,13 +119,26 @@ class BoardHandler:
     @element_retry(max_retries=3, delay=1.0)
     def get_move_input_handle(self):
         """Get the move input element"""
-        for selector_type, selector_value in MOVE_INPUT_SELECTORS:
+        # Try multiple selectors for better reliability - same as wait_for_game_ready
+        move_input_selectors = [
+            (By.CLASS_NAME, "ready"),  # Most common game input selector
+            (By.CSS_SELECTOR, "main.round input"),  # Input within game container
+            (By.CSS_SELECTOR, "input.ready"),  # Ready input specifically
+            (
+                By.XPATH,
+                "//main[contains(@class,'round')]//input",
+            ),  # Input in round/game main
+        ]
+
+        for selector_type, selector_value in move_input_selectors:
             try:
                 WebDriverWait(self.driver, 10).until(
                     ec.presence_of_element_located((selector_type, selector_value))
                 )
                 element = self.driver.find_element(selector_type, selector_value)
-                logger.debug(f"Move input handle found using {selector_type}: {selector_value}")
+                logger.debug(
+                    f"Move input handle found using {selector_type}: {selector_value}"
+                )
                 return element
             except Exception:
                 continue
@@ -159,26 +155,29 @@ class BoardHandler:
             if len(elements) >= move_number:
                 element = elements[move_number - 1]  # 0-based indexing
                 move_text = element.text.strip()
-                if move_text:
+                if move_text:  # Only return if there's actual text
+                    # Move found
                     return element
-        except Exception:
+        except:
             pass
 
-        # Alternative XPath selectors (only if class method fails)
+        # Alternative selectors to try (only if class method fails)
         selectors = [
-            f"//kwdb[{move_number}]",
-            f"//rm6/l4x/kwdb[{move_number}]",
-            f"/html/body/div[2]/main/div[1]/rm6/l4x/kwdb[{move_number}]",
+            f"//kwdb[{move_number}]",  # Shortest XPath
+            f"//rm6/l4x/kwdb[{move_number}]",  # Medium XPath
+            f"/html/body/div[2]/main/div[1]/rm6/l4x/kwdb[{move_number}]",  # Original
         ]
 
         for selector in selectors:
             try:
                 element = self.driver.find_element(By.XPATH, selector)
                 move_text = element.text.strip()
-                if move_text:
-                    logger.debug(f"Found move {move_number}: '{move_text}' using {selector}")
+                if move_text:  # Only return if there's actual text
+                    logger.debug(
+                        f"Found move {move_number}: '{move_text}' using {selector}"
+                    )
                     return element
-            except Exception:
+            except:
                 continue
 
         return None
@@ -420,19 +419,83 @@ class BoardHandler:
 
     def _get_piece_transform(self, move: chess.Move, our_color: str) -> List[float]:
         """Calculate arrow coordinates for the move"""
-        rank_map = RANK_VALUES_WHITE if our_color == "W" else RANK_VALUES_BLACK
-        file_map = FILE_VALUES_WHITE if our_color == "W" else FILE_VALUES_BLACK
+        rank_values_w = [
+            ("a", -3.5),
+            ("b", -2.5),
+            ("c", -1.5),
+            ("d", -0.5),
+            ("e", 0.5),
+            ("f", 1.5),
+            ("g", 2.5),
+            ("h", 3.5),
+        ]
+        file_values_w = [
+            (1, 3.5),
+            (2, 2.5),
+            (3, 1.5),
+            (4, 0.5),
+            (5, -0.5),
+            (6, -1.5),
+            (7, -2.5),
+            (8, -3.5),
+        ]
+
+        rank_values_b = [
+            ("a", 3.5),
+            ("b", 2.5),
+            ("c", 1.5),
+            ("d", 0.5),
+            ("e", -0.5),
+            ("f", -1.5),
+            ("g", -2.5),
+            ("h", -3.5),
+        ]
+        file_values_b = [
+            (1, -3.5),
+            (2, -2.5),
+            (3, -1.5),
+            (4, -0.5),
+            (5, 0.5),
+            (6, 1.5),
+            (7, 2.5),
+            (8, 3.5),
+        ]
 
         move_str = str(move)
-        from_file, from_rank = move_str[0], int(move_str[1])
-        to_file, to_rank = move_str[2], int(move_str[3])
+        _from = str(move_str[:2])
+        _to = str(move_str[2:])
 
-        return [
-            rank_map[from_file],
-            file_map[from_rank],
-            rank_map[to_file],
-            file_map[to_rank],
-        ]
+        # Get source coordinates
+        for i, (rank, value) in enumerate(
+            rank_values_w if our_color == "W" else rank_values_b
+        ):
+            if rank == _from[0]:
+                src_x = value
+                break
+
+        for i, (file, value) in enumerate(
+            file_values_w if our_color == "W" else file_values_b
+        ):
+            if file == int(_from[1]):
+                src_y = value
+                break
+
+        # Get destination coordinates
+        for i, (rank, value) in enumerate(
+            rank_values_w if our_color == "W" else rank_values_b
+        ):
+            if rank == _to[0]:
+                dst_x = value
+                break
+
+        for i, (file, value) in enumerate(
+            file_values_w if our_color == "W" else file_values_b
+        ):
+            if file == int(_to[1]):
+                dst_y = value
+                break
+
+        return [src_x, src_y, dst_x, dst_y]
 
     def is_game_over(self) -> bool:
         """Check if game is over (follow-up element exists)"""

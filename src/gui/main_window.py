@@ -12,7 +12,7 @@ from .widgets.chess_board import ChessBoardWidget
 from .widgets.game_info import GameInfoWidget
 from .widgets.log_panel import LogPanelWidget
 from .widgets.move_history import MoveHistoryWidget
-from .widgets.result_popup import GameResultPopup, show_game_result
+from .widgets.result_popup import show_game_result
 from .widgets.stats_panel import StatisticsPanelWidget
 
 
@@ -42,7 +42,7 @@ class ChessBotGUI:
         # Set window icon if available
         try:
             self.root.iconbitmap("assets/icon.ico")
-        except Exception:
+        except:
             pass
 
         # Configure main grid - spacious three-section layout
@@ -109,7 +109,7 @@ class ChessBotGUI:
         stats_frame.grid_columnconfigure(0, weight=1)
         stats_frame.grid_rowconfigure(0, weight=1)
 
-        self.stats_panel = StatisticsPanelWidget(stats_frame, export_callback=self._export_pgn)
+        self.stats_panel = StatisticsPanelWidget(stats_frame)
         self.stats_panel.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.notebook.add(stats_frame, text="Statistics")
 
@@ -187,28 +187,12 @@ class ChessBotGUI:
         if self.game_manager:
             # Register this GUI with the game manager for updates
             self.game_manager.set_gui_callback(self.update_from_game_manager)
-            
-            # Register for config change notifications
-            self.game_manager.config_manager.register_change_callback(self._on_config_change)
 
         # Auto-start the bot
         self.root.after(1000, self._auto_start_bot)
 
         # Update initial status
         self._update_initial_status()
-
-    def _on_config_change(self, change_data: dict):
-        """Handle config file changes - update GUI"""
-        changed_sections = change_data.get("changed_sections", [])
-        
-        # Log to activity panel
-        self.root.after(0, lambda: self.log_panel.add_log(
-            f"Config reloaded: {', '.join(changed_sections)}", "success"
-        ))
-        
-        # Update status bar if general or engine settings changed
-        if "general" in changed_sections or "engine" in changed_sections:
-            self.root.after(0, self._update_initial_status)
 
     def _auto_start_bot(self):
         """Auto-start the bot after GUI is loaded"""
@@ -269,9 +253,6 @@ class ChessBotGUI:
             elif update_type == "game_finished":
                 self.show_game_result(update_data)
 
-            elif update_type == "close_result_popup":
-                self.close_result_popup()
-
             elif update_type == "log":
                 self.log_panel.add_log(
                     update_data.get("message", ""), update_data.get("level", "info")
@@ -322,19 +303,12 @@ class ChessBotGUI:
             self.move_history.add_move(move, move_number, is_white, evaluation)
 
     def show_game_result(self, result_data: dict):
-        """Show the game result popup (non-blocking)"""
-        def on_popup_close():
+        """Show the game result messagebox"""
+        try:
+            show_game_result(result_data)
             # Notify game manager that user has acknowledged the result
             if self.game_manager:
                 self.game_manager.acknowledge_game_result()
-        
-        try:
-            # Use root.after to ensure we're on the main thread
-            self.root.after(0, lambda: show_game_result(
-                result_data, 
-                parent=self.root, 
-                on_close=on_popup_close
-            ))
         except Exception as e:
             logger.error(f"Error showing game result: {e}")
             # Fallback - just log to console
@@ -344,19 +318,6 @@ class ChessBotGUI:
             # Still acknowledge even on error
             if self.game_manager:
                 self.game_manager.acknowledge_game_result()
-    
-    def close_result_popup(self):
-        """Close any open game result popup"""
-        try:
-            self.root.after(0, GameResultPopup.close_existing)
-        except Exception:
-            pass
-
-    def _export_pgn(self, filename: str) -> bool:
-        """Export games to PGN file via stats manager"""
-        if self.game_manager and hasattr(self.game_manager, 'stats_manager'):
-            return self.game_manager.stats_manager.export_pgn(filename)
-        return False
 
     def run(self):
         """Start the GUI main loop"""

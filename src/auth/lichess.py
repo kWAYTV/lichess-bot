@@ -71,15 +71,17 @@ class LichessAuth:
             logger.debug("Clicked sign-in button")
 
             # Enter credentials
+            lichess_config = self.config_manager.lichess_config
             username_field = driver.find_element(By.ID, "form3-username")
             password_field = driver.find_element(By.ID, "form3-password")
             logger.debug("Found username and password fields")
 
-            username_value = self.config_manager.get_with_aliases(
-                "lichess", ["username", "Username"], ""
+            # Use standardized lowercase keys with backward compatibility
+            username_value = lichess_config.get(
+                "username", lichess_config.get("Username", "")
             )
-            password_value = self.config_manager.get_with_aliases(
-                "lichess", ["password", "Password"], ""
+            password_value = lichess_config.get(
+                "password", lichess_config.get("Password", "")
             )
 
             username_field.send_keys(username_value)
@@ -133,7 +135,7 @@ class LichessAuth:
                 try:
                     totp_field = driver.find_element(By.CSS_SELECTOR, selector)
                     break
-                except Exception:
+                except:
                     continue
 
             if not totp_field:
@@ -158,7 +160,7 @@ class LichessAuth:
                 )
                 submit_button.click()
                 logger.debug("Submitted TOTP form")
-            except Exception:
+            except:
                 # Try alternative submit methods
                 totp_field.submit()
                 logger.debug("Submitted TOTP form via input")
