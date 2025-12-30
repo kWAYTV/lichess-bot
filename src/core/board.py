@@ -51,7 +51,20 @@ class BoardHandler:
         # Waiting for game setup silently
 
         try:
-            # First, wait to be in an actual game URL (not lobby)
+            # First, if we're on a finished game, wait for it to go away
+            # This prevents detecting the old game board as a new game
+            max_gameover_wait = 30
+            gameover_wait_count = 0
+            while gameover_wait_count < max_gameover_wait:
+                if not self.is_game_over():
+                    break
+                sleep(1)
+                gameover_wait_count += 1
+            
+            if gameover_wait_count >= max_gameover_wait:
+                logger.warning("Still on finished game - waiting for user to start new game")
+            
+            # Wait to be in an actual game URL (not lobby)
             max_url_wait = 60  # Wait up to 60 seconds for game to start
             url_wait_count = 0
             while url_wait_count < max_url_wait:
@@ -65,7 +78,9 @@ class BoardHandler:
                     and "/training" not in current_url
                     and len(current_url.split("/")[-1]) >= 8
                 ):  # Game IDs are typically 8+ chars
-                    break
+                    # Also verify game is not over (user may have clicked rematch)
+                    if not self.is_game_over():
+                        break
                 sleep(1)
                 url_wait_count += 1
 

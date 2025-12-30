@@ -23,6 +23,7 @@ class GameResultPopup(tk.Toplevel):
         
         self.on_close = on_close
         self.auto_close_id = None
+        self._is_closed = False
         
         # Window setup
         self.title("Game Finished")
@@ -145,31 +146,46 @@ class GameResultPopup(tk.Toplevel):
     
     def _start_countdown(self, seconds: int):
         """Start the auto-close countdown"""
+        if self._is_closed:
+            return
+        
         if seconds <= 0:
             self._close()
             return
         
-        self.countdown_label.configure(text=f"Auto-closing in {seconds}s...")
-        self.auto_close_id = self.after(1000, lambda: self._start_countdown(seconds - 1))
+        try:
+            self.countdown_label.configure(text=f"Auto-closing in {seconds}s...")
+            self.auto_close_id = self.after(1000, lambda: self._start_countdown(seconds - 1))
+        except Exception:
+            # Widget was destroyed
+            pass
     
     def _close(self):
         """Close the popup and trigger callback"""
+        if self._is_closed:
+            return
+        self._is_closed = True
+        
         if self.auto_close_id:
-            self.after_cancel(self.auto_close_id)
+            try:
+                self.after_cancel(self.auto_close_id)
+            except Exception:
+                pass
             self.auto_close_id = None
         
         GameResultPopup._instance = None
+        
+        # Destroy first, then callback (prevents re-triggering)
+        try:
+            self.destroy()
+        except Exception:
+            pass
         
         if self.on_close:
             try:
                 self.on_close()
             except Exception:
                 pass
-        
-        try:
-            self.destroy()
-        except Exception:
-            pass
     
     @classmethod
     def close_existing(cls):

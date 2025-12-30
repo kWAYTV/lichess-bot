@@ -94,9 +94,19 @@ class GameManager:
             logger.error("Failed to sign in to Lichess")
             return
 
-        # Start game loop
+        # Main game loop - keeps running games until stopped
         logger.info("Waiting for game to start")
-        self.start_new_game()
+        while self._running:
+            try:
+                self.start_new_game()
+                # After game ends, wait a bit before looking for next game
+                sleep(1)
+            except Exception as e:
+                logger.error(f"Game loop error: {e}")
+                if not self.browser_recovery_manager.attempt_browser_recovery():
+                    logger.error("Cannot recover - exiting game loop")
+                    break
+                sleep(2)
 
     def start_new_game(self) -> None:
         """Start a new game with enhanced error handling"""
@@ -297,9 +307,8 @@ class GameManager:
 
             logger.debug("Proceeding to new game detection.")
 
-        # Start new game - this will either succeed (starting a new loop)
-        # or fail (returning to main app loop)
-        self.start_new_game()
+        # Don't call start_new_game() here - let the game loop in start() handle it
+        # This prevents the popup loop when the old game board is still displayed
 
     def _is_our_turn(self, our_color: str) -> bool:
         """Check if it's our turn to move"""
