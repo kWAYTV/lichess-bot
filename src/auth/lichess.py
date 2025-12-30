@@ -135,7 +135,7 @@ class LichessAuth:
                 try:
                     totp_field = driver.find_element(By.CSS_SELECTOR, selector)
                     break
-                except:
+                except Exception:
                     continue
 
             if not totp_field:
@@ -160,7 +160,7 @@ class LichessAuth:
                 )
                 submit_button.click()
                 logger.debug("Submitted TOTP form")
-            except:
+            except Exception:
                 # Try alternative submit methods
                 totp_field.submit()
                 logger.debug("Submitted TOTP form via input")

@@ -57,7 +57,7 @@ def humanized_delay(
     if config_manager:
         try:
             min_seconds, max_seconds = config_manager.get_humanization_delay(delay_type)
-        except:
+        except Exception:
             # Fallback to provided parameters
             pass
 

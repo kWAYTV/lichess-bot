@@ -14,7 +14,7 @@ class GameResultPopup(tk.Toplevel):
         if GameResultPopup._instance is not None:
             try:
                 GameResultPopup._instance.destroy()
-            except:
+            except Exception:
                 pass
         
         GameResultPopup._instance = self
@@ -163,12 +163,12 @@ class GameResultPopup(tk.Toplevel):
         if self.on_close:
             try:
                 self.on_close()
-            except:
+            except Exception:
                 pass
         
         try:
             self.destroy()
-        except:
+        except Exception:
             pass
     
     @classmethod
@@ -177,7 +177,7 @@ class GameResultPopup(tk.Toplevel):
         if cls._instance is not None:
             try:
                 cls._instance._close()
-            except:
+            except Exception:
                 pass
             cls._instance = None
 
@@ -194,7 +194,7 @@ def show_game_result(result_data: dict, parent: tk.Tk = None, on_close: Callable
         # Try to find existing Tk root
         try:
             parent = tk._default_root
-        except:
+        except Exception:
             pass
     
     if parent is None:

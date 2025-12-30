@@ -250,7 +250,7 @@ class BrowserRecoveryManager:
             if self.browser_manager.driver:
                 try:
                     self.browser_manager.driver.quit()
-                except:
+                except Exception:
                     pass
                 self.browser_manager.driver = None
 

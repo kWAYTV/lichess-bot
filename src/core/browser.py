@@ -13,24 +13,27 @@ from ..config.manager import ConfigManager
 from ..utils.helpers import get_geckodriver_path, install_firefox_extensions
 from ..utils.resilience import browser_retry, element_retry, safe_execute
 
+# Constants
+COOKIES_FILE_PATH = os.path.join("deps", "lichess_cookies.json")
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"
+
+# Common Firefox installation paths (Windows)
+FIREFOX_COMMON_PATHS = [
+    r"C:\Program Files\Mozilla Firefox\firefox.exe",
+    r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
+    r"C:\Program Files\Firefox Developer Edition\firefox.exe",
+    r"C:\Program Files (x86)\Firefox Developer Edition\firefox.exe",
+    r"C:\Firefox\firefox.exe",
+    r"D:\Firefox\firefox.exe",
+]
+
 
 def find_firefox_binary() -> Optional[str]:
     """Find Firefox binary path on the system"""
     import shutil
 
-    # Common Firefox installation paths for Windows
-    common_paths = [
-        r"C:\Program Files\Mozilla Firefox\firefox.exe",
-        r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
-        r"C:\Program Files\Firefox Developer Edition\firefox.exe",
-        r"C:\Program Files (x86)\Firefox Developer Edition\firefox.exe",
-        # Add portable Firefox paths
-        r"C:\Firefox\firefox.exe",
-        r"D:\Firefox\firefox.exe",
-    ]
-
     # Check common paths first
-    for path in common_paths:
+    for path in FIREFOX_COMMON_PATHS:
         if os.path.exists(path):
             logger.debug(f"Found Firefox at: {path}")
             return path
@@ -41,7 +44,7 @@ def find_firefox_binary() -> Optional[str]:
         if result:
             logger.debug(f"Found Firefox using 'where': {result}")
             return result
-    except:
+    except Exception:
         pass
 
     logger.warning("Could not find Firefox binary. Please install Firefox or configure the path in config.ini")
@@ -62,7 +65,7 @@ class BrowserManager:
     def __init__(self):
         if not self._initialized:
             self.driver: Optional[webdriver.Firefox] = None
-            self.cookies_file = os.path.join("deps", "lichess_cookies.json")
+            self.cookies_file = COOKIES_FILE_PATH
             self._setup_driver()
             BrowserManager._initialized = True
 
@@ -85,9 +88,7 @@ class BrowserManager:
                 webdriver_options.binary_location = firefox_binary
                 # Firefox binary configured - no need to log path for security
 
-            webdriver_options.add_argument(
-                f'--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"'
-            )
+            webdriver_options.add_argument(f'--user-agent="{USER_AGENT}"')
 
             firefox_service = webdriver.firefox.service.Service(
                 executable_path=get_geckodriver_path()
@@ -253,7 +254,7 @@ class BrowserManager:
                     if element and element.text.strip():
                         logger.debug(f"Login detected via selector: {selector}")
                         return True
-                except:
+                except Exception:
                     continue
 
             # Check page source for login indicators

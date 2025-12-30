@@ -17,10 +17,8 @@ from ..utils.debug import DebugUtils
 from ..utils.helpers import advanced_humanized_delay
 from ..utils.resilience import (
     BrowserRecoveryManager,
-    browser_retry,
     safe_execute,
     validate_game_state,
-    with_browser_recovery,
 )
 
 
@@ -309,6 +307,17 @@ class GameManager:
             not self.board.turn and our_color == "B"
         )
 
+    def _notify_move_played(self, move: chess.Move, move_number: int) -> None:
+        """Notify GUI of a move being played (reduces duplication)"""
+        is_white = (move_number % 2) == 1
+        self._notify_gui({"type": "board_update", "board": self.board, "last_move": move})
+        self._notify_gui({
+            "type": "move_played",
+            "move": move,
+            "move_number": move_number,
+            "is_white": is_white,
+        })
+
     def _looks_like_game_url(self, url: str) -> bool:
         """Check if URL looks like a Lichess game URL"""
         if not url:
@@ -334,19 +343,9 @@ class GameManager:
             if self.board_handler.validate_and_push_move(
                 self.board, move_text, move_number, True
             ):
-                # Get the last move that was pushed
                 last_move = self.board.peek() if self.board.move_stack else None
                 if last_move:
-                    # Determine if it was a white or black move
-                    is_white = (move_number % 2) == 1
-                    self._notify_gui(
-                        {
-                            "type": "move_played",
-                            "move": last_move,
-                            "move_number": move_number,
-                            "is_white": is_white,
-                        }
-                    )
+                    self._notify_move_played(last_move, move_number)
                 return move_number + 1
             else:
                 return move_number
@@ -408,24 +407,7 @@ class GameManager:
 
         self.board_handler.execute_move(move, move_number)
         self.board.push(move)
-
-        # Determine if it was a white or black move
-        is_white = (move_number % 2) == 1
-
-        # Notify GUI of board update
-        self._notify_gui(
-            {"type": "board_update", "board": self.board, "last_move": move}
-        )
-
-        # Notify GUI of move played for history
-        self._notify_gui(
-            {
-                "type": "move_played",
-                "move": move,
-                "move_number": move_number,
-                "is_white": is_white,
-            }
-        )
+        self._notify_move_played(move, move_number)
 
         return move_number + 1
 
@@ -455,24 +437,7 @@ class GameManager:
             self._current_suggestion = None
             self._arrow_drawn = False
 
-            # Determine if it was a white or black move
-            is_white = (move_number % 2) == 1
-
-            # Notify GUI of board update
-            self._notify_gui(
-                {"type": "board_update", "board": self.board, "last_move": move}
-            )
-
-            # Notify GUI of move played for history
-            self._notify_gui(
-                {
-                    "type": "move_played",
-                    "move": move,
-                    "move_number": move_number,
-                    "is_white": is_white,
-                }
-            )
-
+            self._notify_move_played(move, move_number)
             return move_number + 1
         else:
             # Just suggesting - show the move and wait
@@ -501,32 +466,9 @@ class GameManager:
             if self.board_handler.validate_and_push_move(
                 self.board, move_text, move_number, False
             ):
-                # Get the last move from board stack (it was just pushed)
                 last_move = self.board.peek() if self.board.move_stack else None
-
-                # Determine if it was a white or black move
-                is_white = (move_number % 2) == 1
-
-                # Notify GUI of board update
-                self._notify_gui(
-                    {
-                        "type": "board_update",
-                        "board": self.board,
-                        "last_move": last_move,
-                    }
-                )
-
-                # Notify GUI of move played for history
                 if last_move:
-                    self._notify_gui(
-                        {
-                            "type": "move_played",
-                            "move": last_move,
-                            "move_number": move_number,
-                            "is_white": is_white,
-                        }
-                    )
-
+                    self._notify_move_played(last_move, move_number)
                 return move_number + 1
 
         return move_number

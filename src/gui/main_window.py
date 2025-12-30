@@ -42,7 +42,7 @@ class ChessBotGUI:
         # Set window icon if available
         try:
             self.root.iconbitmap("assets/icon.ico")
-        except:
+        except Exception:
             pass
 
         # Configure main grid - spacious three-section layout
@@ -349,7 +349,7 @@ class ChessBotGUI:
         """Close any open game result popup"""
         try:
             self.root.after(0, GameResultPopup.close_existing)
-        except:
+        except Exception:
             pass
 
     def run(self):

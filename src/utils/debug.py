@@ -121,7 +121,7 @@ class DebugUtils:
                         logger.info(
                             f"  [{i}] Tag: {tag}, Classes: {classes}, Text: '{text}'"
                         )
-                    except:
+                    except Exception:
                         logger.debug(f"  [{i}] Could not get element info")
             except Exception as e:
                 logger.debug(f"Selector '{selector}' failed: {e}")

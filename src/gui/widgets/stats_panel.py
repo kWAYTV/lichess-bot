@@ -251,7 +251,7 @@ class StatisticsPanelWidget(tk.Frame):
                         from datetime import datetime
                         dt = datetime.fromisoformat(game["start_time"])
                         date_str = dt.strftime("%m/%d %H:%M")
-                    except:
+                    except Exception:
                         pass
 
                 # Color code results
