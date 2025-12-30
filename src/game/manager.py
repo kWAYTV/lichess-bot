@@ -28,6 +28,7 @@ class GameManager:
 
     def __init__(self):
         self.config = ConfigManager()
+        self.config_manager = self.config  # Alias for GUI compatibility
         self.browser_manager = BrowserManager()
         self.debug = DebugUtils()
         self.board_handler = BoardHandler(
