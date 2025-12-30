@@ -187,12 +187,28 @@ class ChessBotGUI:
         if self.game_manager:
             # Register this GUI with the game manager for updates
             self.game_manager.set_gui_callback(self.update_from_game_manager)
+            
+            # Register for config change notifications
+            self.game_manager.config_manager.register_change_callback(self._on_config_change)
 
         # Auto-start the bot
         self.root.after(1000, self._auto_start_bot)
 
         # Update initial status
         self._update_initial_status()
+
+    def _on_config_change(self, change_data: dict):
+        """Handle config file changes - update GUI"""
+        changed_sections = change_data.get("changed_sections", [])
+        
+        # Log to activity panel
+        self.root.after(0, lambda: self.log_panel.add_log(
+            f"Config reloaded: {', '.join(changed_sections)}", "success"
+        ))
+        
+        # Update status bar if general or engine settings changed
+        if "general" in changed_sections or "engine" in changed_sections:
+            self.root.after(0, self._update_initial_status)
 
     def _auto_start_bot(self):
         """Auto-start the bot after GUI is loaded"""
