@@ -237,14 +237,10 @@ class ChessBotGUI:
                         self.update_status_game("Waiting", "#888888")
 
             elif update_type == "move_played":
-                evaluation_str = self._format_evaluation_for_history(
-                    update_data.get("evaluation")
-                )
                 self.add_move_to_history(
                     update_data.get("move"),
                     update_data.get("move_number"),
                     update_data.get("is_white"),
-                    evaluation_str,
                 )
 
             elif update_type == "game_start":
@@ -297,10 +293,10 @@ class ChessBotGUI:
         """Add a log message to the log panel"""
         self.log_panel.add_log(message, level)
 
-    def add_move_to_history(self, move: chess.Move, move_number: int, is_white: bool, evaluation: str = ""):
+    def add_move_to_history(self, move: chess.Move, move_number: int, is_white: bool):
         """Add a move to the move history"""
         if move:
-            self.move_history.add_move(move, move_number, is_white, evaluation)
+            self.move_history.add_move(move, move_number, is_white)
 
     def show_game_result(self, result_data: dict):
         """Show the game result messagebox"""
@@ -322,35 +318,6 @@ class ChessBotGUI:
     def run(self):
         """Start the GUI main loop"""
         self.root.mainloop()
-
-    def _format_evaluation_for_history(self, evaluation: dict = None) -> str:
-        """Format evaluation data for display in move history"""
-        if not evaluation or "score" not in evaluation:
-            return ""
-
-        score = evaluation["score"]
-        try:
-            # Handle different score types
-            if hasattr(score, "is_mate") and score.is_mate():
-                mate_in = score.mate()
-                return f"M{mate_in}" if mate_in > 0 else f"M{mate_in}"
-
-            if hasattr(score, "relative") and score.relative is not None:
-                score_val = score.relative.score(mate_score=10000) / 100.0
-                return f"{score_val:+.1f}"
-
-            if hasattr(score, "white") and score.white is not None:
-                score_val = score.white().score(mate_score=10000) / 100.0
-                return f"{score_val:+.1f}"
-
-            if hasattr(score, "score"):
-                score_val = score.score(mate_score=10000) / 100.0
-                return f"{score_val:+.1f}"
-
-        except Exception:
-            pass
-
-        return ""
 
     def destroy(self):
         """Clean up and destroy the GUI"""
