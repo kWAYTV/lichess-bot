@@ -12,7 +12,7 @@ from .widgets.chess_board import ChessBoardWidget
 from .widgets.game_info import GameInfoWidget
 from .widgets.log_panel import LogPanelWidget
 from .widgets.move_history import MoveHistoryWidget
-from .widgets.result_popup import show_game_result
+from .widgets.result_popup import GameResultPopup, show_game_result
 from .widgets.stats_panel import StatisticsPanelWidget
 
 
@@ -269,6 +269,9 @@ class ChessBotGUI:
             elif update_type == "game_finished":
                 self.show_game_result(update_data)
 
+            elif update_type == "close_result_popup":
+                self.close_result_popup()
+
             elif update_type == "log":
                 self.log_panel.add_log(
                     update_data.get("message", ""), update_data.get("level", "info")
@@ -319,12 +322,19 @@ class ChessBotGUI:
             self.move_history.add_move(move, move_number, is_white, evaluation)
 
     def show_game_result(self, result_data: dict):
-        """Show the game result messagebox"""
-        try:
-            show_game_result(result_data)
+        """Show the game result popup (non-blocking)"""
+        def on_popup_close():
             # Notify game manager that user has acknowledged the result
             if self.game_manager:
                 self.game_manager.acknowledge_game_result()
+        
+        try:
+            # Use root.after to ensure we're on the main thread
+            self.root.after(0, lambda: show_game_result(
+                result_data, 
+                parent=self.root, 
+                on_close=on_popup_close
+            ))
         except Exception as e:
             logger.error(f"Error showing game result: {e}")
             # Fallback - just log to console
@@ -334,6 +344,13 @@ class ChessBotGUI:
             # Still acknowledge even on error
             if self.game_manager:
                 self.game_manager.acknowledge_game_result()
+    
+    def close_result_popup(self):
+        """Close any open game result popup"""
+        try:
+            self.root.after(0, GameResultPopup.close_existing)
+        except:
+            pass
 
     def run(self):
         """Start the GUI main loop"""

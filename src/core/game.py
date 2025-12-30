@@ -289,13 +289,15 @@ class GameManager:
                 try:
                     current_url = self.browser_manager.driver.current_url
                     if current_url != game_end_url and self._looks_like_game_url(current_url):
-                        logger.info("New game detected while waiting for acknowledgment - auto-acknowledging")
+                        logger.info("New game detected - auto-closing result popup")
                         self._waiting_for_user_ack = False
+                        # Close the popup via GUI callback
+                        self._notify_gui({"type": "close_result_popup"})
                         break
                 except Exception:
                     pass  # Browser might be in transition, ignore
 
-            logger.info("Proceeding to new game detection.")
+            logger.debug("Proceeding to new game detection.")
 
         # Start new game - this will either succeed (starting a new loop)
         # or fail (returning to main app loop)
