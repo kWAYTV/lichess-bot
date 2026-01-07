@@ -2,7 +2,6 @@ selenium
 loguru
 configparser
 chess
-pynput
 pyinstaller
 pystray
 pillow

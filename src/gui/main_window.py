@@ -159,14 +159,7 @@ class ChessBotGUI:
 
     def _update_initial_status(self):
         """Update initial status"""
-        if not self.game_manager:
-            return
-
-        cfg = self.game_manager.config_manager
-        if cfg.is_autoplay_enabled:
-            self.mode_label.configure(text="AUTO", fg="#00DD88")
-        else:
-            self.mode_label.configure(text=f"{cfg.move_key.upper()}", fg="#FFB347")
+        self.mode_label.configure(text="AUTO", fg="#00DD88")
 
     def _setup_callbacks(self):
         """Setup callbacks"""

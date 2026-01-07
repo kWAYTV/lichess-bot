@@ -11,7 +11,6 @@ from ..core.board import BoardHandler
 from ..core.browser import BrowserManager
 from ..core.engine import ChessEngine
 from ..core.stats import StatisticsManager
-from ..input.keyboard_handler import KeyboardHandler
 from ..utils.debug import DebugUtils
 from ..utils.resilience import (
     BrowserRecoveryManager,
@@ -35,7 +34,6 @@ class GameManager:
             self.browser_manager, self.debug, self.config
         )
         self.engine = ChessEngine(self.config)
-        self.keyboard = KeyboardHandler(self.config)
         self.auth = LichessAuth(self.config, self.browser_manager)
         self.stats = StatisticsManager()
         self.recovery = BrowserRecoveryManager(self.browser_manager)
@@ -47,7 +45,6 @@ class GameManager:
             self.config,
             self.board_handler,
             self.engine,
-            self.keyboard,
             self.stats,
             self._notify_gui,
         )
@@ -60,9 +57,7 @@ class GameManager:
     def start(self) -> None:
         """Start the chess bot"""
         logger.info("Starting bot")
-        self._log_mode()
 
-        self.keyboard.start_listening()
         self._navigate_to_lichess()
         self._show_cookie_status()
 
@@ -71,13 +66,6 @@ class GameManager:
             return
 
         self._start_new_game()
-
-    def _log_mode(self) -> None:
-        """Log current mode"""
-        if self.config.is_autoplay_enabled:
-            logger.info("Mode: auto-play")
-        else:
-            logger.info(f"Mode: manual (press {self.config.move_key})")
 
     def _navigate_to_lichess(self) -> None:
         """Navigate to Lichess with recovery"""
@@ -253,7 +241,6 @@ class GameManager:
 
     def cleanup(self) -> None:
         """Clean up resources"""
-        safe_execute(self.keyboard.stop_listening, log_errors=True)
         safe_execute(self.engine.quit, log_errors=True)
         safe_execute(self.browser_manager.close, log_errors=True)
         logger.info("Stopped")

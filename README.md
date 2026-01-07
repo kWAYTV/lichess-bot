@@ -27,8 +27,8 @@ depth = 5
 skill-level = 14
 
 [general]
-auto-play = true
-move-key = end
+arrow = true
+auto-preset = true
 ```
 
 ## Disclaimer

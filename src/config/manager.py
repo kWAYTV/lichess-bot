@@ -71,9 +71,7 @@ class ConfigManager:
             "skill-level": "14",
         }
         self.config["general"] = {
-            "move-key": "end",
             "arrow": "true",
-            "auto-play": "true",
             "auto-preset": "true",
             "log-level": "INFO",
         }
@@ -138,19 +136,9 @@ class ConfigManager:
         return self.get_section("browser")
 
     @property
-    def is_autoplay_enabled(self) -> bool:
-        """Check if autoplay is enabled"""
-        return self.get("general", "auto-play", "false").lower() == "true"
-
-    @property
     def is_auto_preset_enabled(self) -> bool:
         """Check if auto-preset is enabled"""
         return self.get("general", "auto-preset", "true").lower() == "true"
-
-    @property
-    def move_key(self) -> str:
-        """Get move key"""
-        return self.get("general", "move-key", "end")
 
     @property
     def show_arrow(self) -> bool:

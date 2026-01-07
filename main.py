@@ -36,11 +36,6 @@ def main():
         gui = ChessBotGUI(game_manager)
         gui_handler.set_gui(gui)
 
-        if config.is_autoplay_enabled:
-            logger.info("AutoPlay MODE: Bot will make moves automatically")
-        else:
-            logger.info(f"Suggestion MODE: Press '{config.move_key}' to execute moves")
-
         gui.run()
 
     except KeyboardInterrupt:

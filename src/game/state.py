@@ -1,7 +1,6 @@
 """Game state management"""
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import chess
 
@@ -15,8 +14,6 @@ class GameState:
     active: bool = False
     result_logged: bool = False
     waiting_for_ack: bool = False
-    current_suggestion: Optional[chess.Move] = None
-    arrow_drawn: bool = False
 
     def reset(self) -> None:
         """Reset for new game"""
@@ -24,8 +21,6 @@ class GameState:
         self.active = True
         self.result_logged = False
         self.waiting_for_ack = False
-        self.current_suggestion = None
-        self.arrow_drawn = False
 
     def is_our_turn(self) -> bool:
         """Check if it's our turn"""

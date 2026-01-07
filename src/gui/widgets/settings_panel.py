@@ -104,21 +104,13 @@ class SettingsPanelWidget(tk.Frame):
             fg="#888888", bg="#1a1a1a", relief="flat"
         )
 
-        self.vars["autoplay"] = tk.BooleanVar()
-        self.autoplay_check = tk.Checkbutton(
-            self.general_frame, text="Auto-play", variable=self.vars["autoplay"],
-            font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
-            selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
-        )
-        self.autoplay_check.grid(row=0, column=0, sticky="w", padx=5, pady=2)
-
         self.vars["arrow"] = tk.BooleanVar()
         self.arrow_check = tk.Checkbutton(
             self.general_frame, text="Show arrow", variable=self.vars["arrow"],
             font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
             selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
         )
-        self.arrow_check.grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        self.arrow_check.grid(row=0, column=0, sticky="w", padx=5, pady=2)
 
         self.vars["auto_preset"] = tk.BooleanVar()
         self.auto_preset_check = tk.Checkbutton(
@@ -126,7 +118,7 @@ class SettingsPanelWidget(tk.Frame):
             font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
             selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
         )
-        self.auto_preset_check.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+        self.auto_preset_check.grid(row=1, column=0, sticky="w", padx=5, pady=2)
 
         self.human_frame = tk.LabelFrame(
             self, text="Delays (seconds)", font=("Segoe UI", 9),
@@ -179,7 +171,6 @@ class SettingsPanelWidget(tk.Frame):
             self.vars["depth"].set(self.config.get("engine", "depth", "5"))
             self.vars["skill"].set(self.config.get("engine", "skill-level", "14"))
 
-            self.vars["autoplay"].set(self.config.is_autoplay_enabled)
             self.vars["arrow"].set(self.config.show_arrow)
             self.vars["auto_preset"].set(self.config.is_auto_preset_enabled)
 
@@ -206,7 +197,6 @@ class SettingsPanelWidget(tk.Frame):
 
             self.config.set("engine", "depth", str(depth))
             self.config.set("engine", "skill-level", str(skill))
-            self.config.set("general", "auto-play", str(self.vars["autoplay"].get()).lower())
             self.config.set("general", "arrow", str(self.vars["arrow"].get()).lower())
             self.config.set("general", "auto-preset", str(self.vars["auto_preset"].get()).lower())
             self.config.set("humanization", "min-delay", str(min_delay))

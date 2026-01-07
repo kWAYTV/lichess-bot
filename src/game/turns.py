@@ -1,6 +1,5 @@
 """Turn handling logic"""
 
-from time import sleep
 from typing import Callable
 
 import chess
@@ -10,7 +9,6 @@ from ..config import ConfigManager
 from ..core.board import BoardHandler
 from ..core.engine import ChessEngine
 from ..core.stats import StatisticsManager
-from ..input.keyboard_handler import KeyboardHandler
 from ..utils.helpers import advanced_humanized_delay
 from .state import GameState
 
@@ -23,14 +21,12 @@ class TurnHandler:
         config: ConfigManager,
         board_handler: BoardHandler,
         engine: ChessEngine,
-        keyboard: KeyboardHandler,
         stats: StatisticsManager,
         notify_gui: Callable,
     ):
         self.config = config
         self.board_handler = board_handler
         self.engine = engine
-        self.keyboard = keyboard
         self.stats = stats
         self.notify_gui = notify_gui
 
@@ -41,10 +37,7 @@ class TurnHandler:
             return self._process_existing_move(state, move_text, move_number)
 
         move = self._get_engine_move(state, move_number)
-
-        if self.config.is_autoplay_enabled:
-            return self._execute_auto(state, move, move_number)
-        return self._handle_manual(state, move, move_number)
+        return self._execute_move(state, move, move_number)
 
     def handle_opponent_turn(self, state: GameState, move_number: int) -> int:
         """Handle opponent turn, return next move number"""
@@ -140,7 +133,7 @@ class TurnHandler:
 
         return move
 
-    def _execute_auto(
+    def _execute_move(
         self, state: GameState, move: chess.Move, move_number: int
     ) -> int:
         """Execute move automatically"""
@@ -152,43 +145,6 @@ class TurnHandler:
 
         self.board_handler.execute_move(move, remaining)
         state.board.push(move)
-
-        is_white = (move_number % 2) == 1
-        self.notify_gui({"type": "board_update", "board": state.board, "last_move": move})
-        self.notify_gui({
-            "type": "move_played",
-            "move": move,
-            "move_number": move_number,
-            "is_white": is_white,
-        })
-
-        return move_number + 1
-
-    def _handle_manual(
-        self, state: GameState, move: chess.Move, move_number: int
-    ) -> int:
-        """Handle manual move execution"""
-        if state.current_suggestion != move:
-            state.current_suggestion = move
-            state.arrow_drawn = False
-
-        if self.config.show_arrow and not state.arrow_drawn:
-            self.board_handler.draw_arrow(move, state.our_color)
-            state.arrow_drawn = True
-
-        if not self.keyboard.should_make_move():
-            logger.info(f"Suggest: {move} - press {self.config.move_key}")
-            sleep(0.1)
-            return move_number
-
-        logger.info(f"Executing: {move}")
-        remaining = self._get_remaining_time()
-        self.board_handler.execute_move(move, remaining)
-        self.keyboard.reset_move_state()
-        state.board.push(move)
-
-        state.current_suggestion = None
-        state.arrow_drawn = False
 
         is_white = (move_number % 2) == 1
         self.notify_gui({"type": "board_update", "board": state.board, "last_move": move})
