@@ -237,19 +237,32 @@ class BoardHandler:
         else:
             humanized_delay(0.3, 0.8, "move input")
 
-        # Execute
-        def _send_input():
-            move_handle.send_keys(Keys.RETURN)
+        # Click to focus the input first
+        try:
+            move_handle.click()
+        except Exception:
+            # If click fails, try JavaScript focus
+            self.browser_manager.execute_script("arguments[0].focus();", move_handle)
+
+        if self.config_manager:
+            advanced_humanized_delay("typing", self.config_manager, "base")
+        else:
+            humanized_delay(0.2, 0.5, "typing")
+
+        # Try sending keys, fall back to JavaScript if needed
+        try:
             move_handle.clear()
-
-            if self.config_manager:
-                advanced_humanized_delay("typing", self.config_manager, "base")
-            else:
-                humanized_delay(0.2, 0.5, "typing")
-
             move_handle.send_keys(str(move))
-
-        safe_execute(_send_input, log_errors=True)
+            move_handle.send_keys(Keys.RETURN)
+        except Exception as e:
+            logger.warning(f"Direct input failed, using JavaScript: {e}")
+            # JavaScript fallback
+            self.browser_manager.execute_script(
+                "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles: true}));",
+                move_handle,
+                str(move),
+            )
+            move_handle.send_keys(Keys.RETURN)
 
     def clear_arrow(self) -> None:
         """Clear any arrows on the board"""
