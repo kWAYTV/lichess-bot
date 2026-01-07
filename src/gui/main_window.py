@@ -104,6 +104,14 @@ class ChessBotGUI:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=8, pady=4)
 
+        # Board tab (first)
+        board_frame = tk.Frame(self.notebook, bg="#1a1a1a")
+        board_frame.grid_columnconfigure(0, weight=1)
+        board_frame.grid_rowconfigure(0, weight=1)
+        self.chess_board = ChessBoardWidget(board_frame)
+        self.chess_board.grid(row=0, column=0, sticky="nsew")
+        self.notebook.add(board_frame, text="Board")
+
         # Log tab
         log_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         log_frame.grid_columnconfigure(0, weight=1)
@@ -127,14 +135,6 @@ class ChessBotGUI:
         self.stats_panel = StatisticsPanelWidget(stats_frame, compact=True)
         self.stats_panel.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(stats_frame, text="Stats")
-
-        # Board tab
-        board_frame = tk.Frame(self.notebook, bg="#1a1a1a")
-        board_frame.grid_columnconfigure(0, weight=1)
-        board_frame.grid_rowconfigure(0, weight=1)
-        self.chess_board = ChessBoardWidget(board_frame)
-        self.chess_board.grid(row=0, column=0, sticky="nsew")
-        self.notebook.add(board_frame, text="Board")
 
         # Footer
         footer = tk.Frame(self.root, bg="#1a1a1a", height=24)
