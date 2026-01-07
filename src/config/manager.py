@@ -2,6 +2,9 @@
 
 import configparser
 import os
+import sys
+import tkinter as tk
+from tkinter import messagebox
 from typing import Any, Dict, Optional
 
 from ..utils.helpers import get_stockfish_path
@@ -15,6 +18,11 @@ class ConfigManager:
 
     VALID_LOG_LEVELS = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
+    REQUIRED_FILES = [
+        "config.ini",
+        os.path.join("deps", "lichess.org.cookies.json"),
+    ]
+
     def __new__(cls) -> "ConfigManager":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -22,19 +30,29 @@ class ConfigManager:
 
     def __init__(self):
         if not self._initialized:
+            self._base_path = self._get_base_path()
+            self._validate_required_files()
             self.config = configparser.ConfigParser()
-            self._config_path = self._get_config_path()
+            self._config_path = os.path.join(self._base_path, "config.ini")
             self._load_or_create_config()
             ConfigManager._initialized = True
 
-    def _get_config_path(self) -> str:
-        """Get config path relative to exe/script location"""
-        import sys
+    def _get_base_path(self) -> str:
+        """Get base path for exe or script"""
         if getattr(sys, 'frozen', False):
-            base = os.path.dirname(sys.executable)
-        else:
-            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        return os.path.join(base, "config.ini")
+            return os.path.dirname(sys.executable)
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    def _validate_required_files(self) -> None:
+        """Check required files exist, show error and exit if missing"""
+        missing = [f for f in self.REQUIRED_FILES if not os.path.exists(os.path.join(self._base_path, f))]
+        if missing:
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showerror("Missing Files", f"Required files not found:\n\n• " + "\n• ".join(missing))
+            root.destroy()
+            sys.exit(1)
+
 
     def _load_or_create_config(self) -> None:
         """Load existing config or create default"""
