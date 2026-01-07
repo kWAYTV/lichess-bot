@@ -1,7 +1,13 @@
 <div align="center">
     <h1>Helping Hand</h1>
     <p>Lichess chess bot with Stockfish integration</p>
-    <img width="280" src="assets/preview.png">
+    <p>
+        <img width="140" src="assets/tabs/1.png">
+        <img width="140" src="assets/tabs/2.png">
+        <img width="140" src="assets/tabs/3.png">
+        <img width="140" src="assets/tabs/4.png">
+        <img width="140" src="assets/tabs/5.png">
+    </p>
 </div>
 
 ## Features
