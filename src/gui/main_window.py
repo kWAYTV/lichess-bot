@@ -214,7 +214,10 @@ class ChessBotGUI:
             elif msg_type == "game_finished":
                 self.show_game_result(update_data)
             elif msg_type == "statistics_update":
-                self.stats_panel.update_statistics(update_data.get("stats", {}))
+                self.stats_panel.update_statistics(
+                    session_data=update_data.get("session_stats"),
+                    all_time_data=update_data.get("all_time_stats"),
+                )
         except Exception as e:
             logger.error(f"GUI update error: {e}")
 

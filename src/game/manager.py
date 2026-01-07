@@ -226,6 +226,21 @@ class GameManager:
     def set_gui_callback(self, callback: Callable) -> None:
         """Set GUI update callback"""
         self.gui_callback = callback
+        self._send_initial_stats()
+
+    def _send_initial_stats(self) -> None:
+        """Send initial stats to GUI on startup"""
+        session = self.stats.get_overall_stats(session_only=True)
+        session["recent_games"] = self.stats.get_recent_games(5, session_only=True)
+
+        all_time = self.stats.get_overall_stats(session_only=False)
+        all_time["recent_games"] = self.stats.get_recent_games(5, session_only=False)
+
+        self._notify_gui({
+            "type": "statistics_update",
+            "session_stats": session,
+            "all_time_stats": all_time,
+        })
 
     def acknowledge_game_result(self) -> None:
         """Called when user acknowledges result"""

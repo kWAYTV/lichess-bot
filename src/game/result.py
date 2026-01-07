@@ -54,9 +54,17 @@ class ResultHandler:
                 "move_count": move_count,
             })
 
-            overall = self.stats.get_overall_stats()
-            overall["recent_games"] = self.stats.get_recent_games(5)
-            self.notify_gui({"type": "statistics_update", "stats": overall})
+            session = self.stats.get_overall_stats(session_only=True)
+            session["recent_games"] = self.stats.get_recent_games(5, session_only=True)
+
+            all_time = self.stats.get_overall_stats(session_only=False)
+            all_time["recent_games"] = self.stats.get_recent_games(5, session_only=False)
+
+            self.notify_gui({
+                "type": "statistics_update",
+                "session_stats": session,
+                "all_time_stats": all_time,
+            })
 
         except Exception:
             logger.info("Game finished")

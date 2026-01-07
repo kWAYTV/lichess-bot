@@ -2,10 +2,18 @@
 
 import json
 import os
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional
 
 from ..utils.logging import logger
+
+
+def _get_base_path() -> str:
+    """Get base path for file resolution"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class GameStats:
@@ -92,9 +100,11 @@ class StatisticsManager:
     """Manager for tracking chess game statistics and performance"""
 
     def __init__(self, stats_file: str = "stats.json"):
-        self.stats_file = stats_file
+        base = _get_base_path()
+        self.stats_file = os.path.join(base, stats_file)
         self.current_game: Optional[GameStats] = None
         self.all_games: List[GameStats] = []
+        self.session_games: List[GameStats] = []
         self.load_stats()
 
     def start_new_game(self, game_id: str = None, our_color: str = None) -> None:
@@ -115,6 +125,7 @@ class StatisticsManager:
 
         self.current_game.complete_game(result, score, reason, total_moves)
         self.all_games.append(self.current_game)
+        self.session_games.append(self.current_game)
 
         self.save_stats()
         self.current_game = None
@@ -130,23 +141,24 @@ class StatisticsManager:
             return self.current_game.to_dict()
         return None
 
-    def get_overall_stats(self) -> Dict:
-        """Get overall statistics across all games"""
-        if not self.all_games:
+    def get_overall_stats(self, session_only: bool = False) -> Dict:
+        """Get overall statistics across all games or session only"""
+        games = self.session_games if session_only else self.all_games
+        if not games:
             return self._empty_stats()
 
-        total_games = len(self.all_games)
-        wins = sum(1 for g in self.all_games if g.result == "win")
-        losses = sum(1 for g in self.all_games if g.result == "loss")
-        draws = sum(1 for g in self.all_games if g.result == "draw")
+        total_games = len(games)
+        wins = sum(1 for g in games if g.result == "win")
+        losses = sum(1 for g in games if g.result == "loss")
+        draws = sum(1 for g in games if g.result == "draw")
 
         win_rate = (wins / total_games * 100) if total_games > 0 else 0
 
-        game_lengths = [g.total_moves for g in self.all_games if g.total_moves > 0]
+        game_lengths = [g.total_moves for g in games if g.total_moves > 0]
         avg_game_length = sum(game_lengths) / len(game_lengths) if game_lengths else 0
 
         evaluations = [
-            g.average_evaluation for g in self.all_games
+            g.average_evaluation for g in games
             if g.average_evaluation is not None
         ]
         avg_evaluation = sum(evaluations) / len(evaluations) if evaluations else None
@@ -159,18 +171,23 @@ class StatisticsManager:
             "win_rate": round(win_rate, 1),
             "average_game_length": round(avg_game_length, 1),
             "average_evaluation": round(avg_evaluation, 2) if avg_evaluation else None,
-            "best_win": self._find_best_result("win"),
-            "worst_loss": self._find_best_result("loss"),
+            "best_win": self._find_best_result("win", games),
+            "worst_loss": self._find_best_result("loss", games),
         }
 
-    def get_recent_games(self, limit: int = 10) -> List[Dict]:
+    def get_recent_games(self, limit: int = 10, session_only: bool = False) -> List[Dict]:
         """Get recent games (most recent first)"""
-        recent_games = sorted(self.all_games, key=lambda g: g.start_time, reverse=True)
+        games = self.session_games if session_only else self.all_games
+        recent_games = sorted(games, key=lambda g: g.start_time, reverse=True)
         return [game.to_dict() for game in recent_games[:limit]]
 
-    def _find_best_result(self, result_type: str) -> Optional[Dict]:
+    def _find_best_result(
+        self, result_type: str, games: List[GameStats] = None
+    ) -> Optional[Dict]:
         """Find the best result of a given type"""
-        games = [g for g in self.all_games if g.result == result_type]
+        if games is None:
+            games = self.all_games
+        games = [g for g in games if g.result == result_type]
         if not games:
             return None
 
