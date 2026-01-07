@@ -9,8 +9,9 @@ from typing import Dict
 class LogPanelWidget(tk.Frame):
     """Panel for displaying real-time logs and status messages"""
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, compact=False, **kwargs):
         super().__init__(parent, bg="#1e1e2e", **kwargs)
+        self.compact = compact
 
         # Configuration
         self.max_lines = 300  # Reduced from 500 to reduce memory usage
@@ -47,37 +48,30 @@ class LogPanelWidget(tk.Frame):
 
     def _create_widgets(self):
         """Create all log panel widgets"""
+        font_size = 8 if self.compact else 9
 
         # Sleek header
         self.header_frame = tk.Frame(self, bg=self.surface_color)
 
-        self.title_label = tk.Label(
-            self.header_frame,
-            text="📋 Activity Log",
-            font=("Segoe UI", 9, "bold"),
-            fg=self.secondary_text,
-            bg=self.surface_color,
-        )
-
         self.clear_button = tk.Button(
             self.header_frame,
-            text="🗑",
+            text="Clear",
             command=self._clear_logs,
-            font=("Segoe UI", 8),
+            font=("Segoe UI", 7),
             bg=self.bg_color,
             fg=self.text_color,
             activebackground=self.accent_color,
             activeforeground=self.text_color,
             relief="flat",
             borderwidth=0,
-            padx=6,
-            pady=2,
+            padx=4,
+            pady=1,
         )
 
         self.auto_scroll_var = tk.BooleanVar(value=True)
         self.auto_scroll_checkbox = tk.Checkbutton(
             self.header_frame,
-            text="🔄 Auto",
+            text="Auto",
             variable=self.auto_scroll_var,
             command=self._toggle_auto_scroll,
             font=("Segoe UI", 7),
@@ -88,11 +82,10 @@ class LogPanelWidget(tk.Frame):
             activeforeground=self.text_color,
         )
 
-        # Log level filter checkbox
         self.show_debug_var = tk.BooleanVar(value=False)
         self.debug_checkbox = tk.Checkbutton(
             self.header_frame,
-            text="🐛 Debug",
+            text="Debug",
             variable=self.show_debug_var,
             command=self._toggle_debug_logs,
             font=("Segoe UI", 7),
@@ -103,10 +96,9 @@ class LogPanelWidget(tk.Frame):
             activeforeground=self.text_color,
         )
 
-        # Sleek log display area
+        # Log display area
         self.log_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
-        # Text widget with sleek styling - larger font for readability
         self.log_text = tk.Text(
             self.log_frame,
             wrap=tk.WORD,
@@ -115,11 +107,11 @@ class LogPanelWidget(tk.Frame):
             fg=self.text_color,
             insertbackground=self.text_color,
             selectbackground=self.accent_color,
-            font=("JetBrains Mono", 9),  # Larger monospace font for better readability
+            font=("Consolas", font_size),
             relief="flat",
             borderwidth=0,
-            padx=8,
-            pady=4,
+            padx=4,
+            pady=2,
         )
 
         self.scrollbar = tk.Scrollbar(
@@ -143,12 +135,11 @@ class LogPanelWidget(tk.Frame):
 
         # Compact header
         self.header_frame.grid(row=0, column=0, sticky="ew", pady=(2, 2))
-        self.header_frame.grid_columnconfigure(1, weight=1)
+        self.header_frame.grid_columnconfigure(0, weight=1)
 
-        self.title_label.grid(row=0, column=0, sticky="w", padx=(0, 10))
-        self.debug_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 5))
-        self.auto_scroll_checkbox.grid(row=0, column=2, sticky="e", padx=(0, 5))
-        self.clear_button.grid(row=0, column=3, sticky="e")
+        self.debug_checkbox.grid(row=0, column=0, sticky="w")
+        self.auto_scroll_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 4))
+        self.clear_button.grid(row=0, column=2, sticky="e")
 
         # Compact log area
         self.log_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 2))
