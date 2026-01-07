@@ -1,5 +1,6 @@
 """Compact GUI Window for Chess Bot"""
 
+import os
 import threading
 import tkinter as tk
 from tkinter import ttk
@@ -7,6 +8,8 @@ from typing import Optional
 
 import chess
 from loguru import logger
+from PIL import Image
+import pystray
 
 from .widgets.chess_board import ChessBoardWidget
 from .widgets.log_panel import LogPanelWidget
@@ -20,9 +23,11 @@ class ChessBotGUI:
 
     def __init__(self, game_manager=None):
         self.game_manager = game_manager
+        self.tray_icon: Optional[pystray.Icon] = None
         self._create_main_window()
         self._setup_layout()
         self._setup_callbacks()
+        self._setup_tray_icon()
 
         self.current_board = chess.Board()
         self.our_color = "white"
@@ -43,6 +48,9 @@ class ChessBotGUI:
             self.root.iconbitmap("assets/icon.ico")
         except:
             pass
+
+        # Override close button to minimize to tray
+        self.root.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
 
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(1, weight=1)
@@ -265,11 +273,67 @@ class ChessBotGUI:
             if self.game_manager:
                 self.game_manager.acknowledge_game_result()
 
+    def _setup_tray_icon(self):
+        """Setup system tray icon"""
+        try:
+            # Load icon
+            icon_path = "assets/icon.ico"
+            if os.path.exists(icon_path):
+                image = Image.open(icon_path)
+            else:
+                # Create a simple fallback icon (green circle)
+                image = Image.new("RGB", (64, 64), "#00DD88")
+
+            # Create tray menu
+            menu = pystray.Menu(
+                pystray.MenuItem("Show", self._show_from_tray, default=True),
+                pystray.MenuItem("Exit", self._quit_from_tray),
+            )
+
+            self.tray_icon = pystray.Icon("ChessBot", image, "Chess Bot", menu)
+
+            # Run tray icon in background thread
+            threading.Thread(target=self.tray_icon.run, daemon=True).start()
+        except Exception as e:
+            logger.warning(f"Failed to setup tray icon: {e}")
+            self.tray_icon = None
+
+    def _minimize_to_tray(self):
+        """Hide window to system tray"""
+        self.root.withdraw()
+        if self.tray_icon:
+            self.tray_icon.notify("Chess Bot minimized to tray", "Chess Bot")
+
+    def _show_from_tray(self, icon=None, item=None):
+        """Restore window from tray"""
+        self.root.after(0, self._restore_window)
+
+    def _restore_window(self):
+        """Restore window on main thread"""
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def _quit_from_tray(self, icon=None, item=None):
+        """Quit app from tray"""
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.root.after(0, self._force_quit)
+
+    def _force_quit(self):
+        """Force quit on main thread"""
+        self.destroy()
+
     def run(self):
         """Start GUI"""
         self.root.mainloop()
 
     def destroy(self):
         """Cleanup"""
+        if self.tray_icon:
+            try:
+                self.tray_icon.stop()
+            except:
+                pass
         if self.root:
             self.root.destroy()
