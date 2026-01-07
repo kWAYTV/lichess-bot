@@ -445,7 +445,7 @@ class BoardHandler:
             return None
 
     def _parse_clock_time(self, time_str: str) -> Optional[int]:
-        """Parse clock time string to seconds (e.g. '5:30' -> 330, '0:45' -> 45)"""
+        """Parse clock time string to seconds (e.g. '5:30' -> 330, '0:45' -> 45, '00:09.8' -> 9)"""
         try:
             # Remove newlines and extra whitespace (Lichess sometimes splits 01\n:\n00)
             time_str = time_str.replace('\n', '').replace(' ', '').strip()
@@ -453,14 +453,18 @@ class BoardHandler:
             if ':' in time_str:
                 parts = time_str.split(':')
                 if len(parts) == 2:
-                    mins, secs = int(parts[0]), int(parts[1])
+                    # Handle decimal seconds like '00:09.8' -> truncate to int
+                    mins = int(parts[0])
+                    secs = int(float(parts[1]))  # float() handles '09.8', int() truncates
                     return mins * 60 + secs
                 elif len(parts) == 3:
-                    hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
+                    hrs = int(parts[0])
+                    mins = int(parts[1])
+                    secs = int(float(parts[2]))
                     return hrs * 3600 + mins * 60 + secs
             else:
-                # Just seconds (for <1 min display)
-                return int(time_str)
+                # Just seconds (for <1 min display, may have decimals like '9.8')
+                return int(float(time_str))
             
             return None
         except Exception:
