@@ -6,6 +6,8 @@ from typing import Callable, Optional
 
 from loguru import logger
 
+from ...config.presets import get_all_presets, apply_preset
+
 
 class SettingsPanelWidget(tk.Frame):
     """Widget for editing bot settings in real-time"""
@@ -31,6 +33,46 @@ class SettingsPanelWidget(tk.Frame):
         # Title
         self.title = tk.Label(self, text="⚙️ Settings", font=("Segoe UI", 11, "bold"),
                               fg="#ffffff", bg="#1a1a1a")
+        
+        # Presets section
+        self.presets_frame = tk.LabelFrame(self, text="Quick Presets", font=("Segoe UI", 9),
+                                           fg="#888888", bg="#1a1a1a", relief="flat")
+        
+        preset_btn_style = {
+            "font": ("Segoe UI", 8, "bold"),
+            "fg": "#ffffff",
+            "relief": "flat",
+            "cursor": "hand2",
+            "width": 8,
+        }
+        
+        # Bullet preset
+        self.bullet_btn = tk.Button(
+            self.presets_frame, text="🔥 Bullet", bg="#cc4444", activebackground="#dd5555",
+            command=lambda: self._apply_preset("bullet"), **preset_btn_style
+        )
+        self.bullet_btn.grid(row=0, column=0, padx=2, pady=4)
+        
+        # Blitz preset
+        self.blitz_btn = tk.Button(
+            self.presets_frame, text="⚡ Blitz", bg="#cc8844", activebackground="#dd9955",
+            command=lambda: self._apply_preset("blitz"), **preset_btn_style
+        )
+        self.blitz_btn.grid(row=0, column=1, padx=2, pady=4)
+        
+        # Rapid preset
+        self.rapid_btn = tk.Button(
+            self.presets_frame, text="🕐 Rapid", bg="#4488cc", activebackground="#5599dd",
+            command=lambda: self._apply_preset("rapid"), **preset_btn_style
+        )
+        self.rapid_btn.grid(row=0, column=2, padx=2, pady=4)
+        
+        # Classical preset
+        self.classical_btn = tk.Button(
+            self.presets_frame, text="♔ Classical", bg="#448844", activebackground="#559955",
+            command=lambda: self._apply_preset("classical"), **preset_btn_style
+        )
+        self.classical_btn.grid(row=0, column=3, padx=2, pady=4)
         
         # Engine section
         self.engine_frame = tk.LabelFrame(self, text="Engine", font=("Segoe UI", 9),
@@ -70,6 +112,15 @@ class SettingsPanelWidget(tk.Frame):
         )
         self.arrow_check.grid(row=1, column=0, sticky="w", padx=5, pady=2)
         
+        # Auto-preset toggle
+        self.vars["auto_preset"] = tk.BooleanVar()
+        self.auto_preset_check = tk.Checkbutton(
+            self.general_frame, text="Auto-preset", variable=self.vars["auto_preset"],
+            font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
+            selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
+        )
+        self.auto_preset_check.grid(row=0, column=1, sticky="w", padx=5, pady=2)
+        
         # Humanization section
         self.human_frame = tk.LabelFrame(self, text="Delays (seconds)", font=("Segoe UI", 9),
                                          fg="#888888", bg="#1a1a1a", relief="flat")
@@ -101,11 +152,12 @@ class SettingsPanelWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         
         self.title.grid(row=0, column=0, pady=(0, 8), sticky="w")
-        self.engine_frame.grid(row=1, column=0, sticky="ew", pady=4)
-        self.general_frame.grid(row=2, column=0, sticky="ew", pady=4)
-        self.human_frame.grid(row=3, column=0, sticky="ew", pady=4)
-        self.save_btn.grid(row=4, column=0, sticky="ew", pady=(8, 4))
-        self.status_label.grid(row=5, column=0, sticky="ew")
+        self.presets_frame.grid(row=1, column=0, sticky="ew", pady=4)
+        self.engine_frame.grid(row=2, column=0, sticky="ew", pady=4)
+        self.general_frame.grid(row=3, column=0, sticky="ew", pady=4)
+        self.human_frame.grid(row=4, column=0, sticky="ew", pady=4)
+        self.save_btn.grid(row=5, column=0, sticky="ew", pady=(8, 4))
+        self.status_label.grid(row=6, column=0, sticky="ew")
 
     def _load_current_values(self):
         """Load current config values into UI"""
@@ -117,6 +169,7 @@ class SettingsPanelWidget(tk.Frame):
             # General
             self.vars["autoplay"].set(self.config.is_autoplay_enabled)
             self.vars["arrow"].set(self.config.show_arrow)
+            self.vars["auto_preset"].set(self.config.is_auto_preset_enabled)
             
             # Humanization
             self.vars["min_delay"].set(self.config.get("humanization", "min-delay", "0.3"))
@@ -146,6 +199,7 @@ class SettingsPanelWidget(tk.Frame):
             self.config.set("engine", "skill-level", str(skill))
             self.config.set("general", "auto-play", str(self.vars["autoplay"].get()).lower())
             self.config.set("general", "arrow", str(self.vars["arrow"].get()).lower())
+            self.config.set("general", "auto-preset", str(self.vars["auto_preset"].get()).lower())
             self.config.set("humanization", "min-delay", str(min_delay))
             self.config.set("humanization", "max-delay", str(max_delay))
             
@@ -167,4 +221,19 @@ class SettingsPanelWidget(tk.Frame):
         """Show temporary status message"""
         self.status_label.configure(text=text, fg=color)
         self.after(3000, lambda: self.status_label.configure(text=""))
+
+    def _apply_preset(self, preset_name: str):
+        """Apply a preset and reload values"""
+        try:
+            if apply_preset(self.config, preset_name):
+                self._load_current_values()
+                presets = get_all_presets()
+                preset = presets.get(preset_name)
+                self._flash_status(f"✓ {preset.name} preset applied!", "#66ff66")
+                logger.info(f"Applied {preset_name} preset")
+            else:
+                self._flash_status("✗ Unknown preset", "#ff6666")
+        except Exception as e:
+            self._flash_status("✗ Failed to apply", "#ff6666")
+            logger.error(f"Failed to apply preset: {e}")
 
