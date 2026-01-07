@@ -110,8 +110,13 @@ class TurnHandler:
     def _get_remaining_time(self) -> int:
         """Get our remaining clock time in seconds"""
         try:
-            return self.board_handler.get_our_clock_seconds() or 999
-        except:
+            time = self.board_handler.get_our_clock_seconds()
+            if time is None:
+                return 999
+            logger.debug(f"⏱️ Our clock: {time}s")
+            return time
+        except Exception as e:
+            logger.warning(f"Clock read failed: {e}")
             return 999
 
     def _get_engine_move(self, state: GameState, move_number: int) -> chess.Move:

@@ -96,9 +96,10 @@ def advanced_humanized_delay(
 
     # Calculate time pressure multiplier (0.0 to 1.0)
     # Lower remaining time = lower multiplier = shorter delays
-    if remaining_time is not None:
+    if remaining_time is not None and remaining_time >= 0:
         if remaining_time < 10:
             time_mult = 0.0  # Critical: no delays
+            logger.debug(f"⚡ CRITICAL TIME ({remaining_time}s) - skipping {action}")
         elif remaining_time < 30:
             time_mult = 0.2  # Very low: minimal delays
         elif remaining_time < 60:
@@ -109,6 +110,7 @@ def advanced_humanized_delay(
             time_mult = 1.0  # Normal
     else:
         time_mult = 1.0
+        logger.warning(f"No remaining_time passed to delay, using full delays")
 
     # Skip delays entirely in critical time
     if time_mult == 0.0:
