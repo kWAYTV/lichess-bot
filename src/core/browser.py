@@ -163,7 +163,8 @@ class BrowserManager:
             for cookie in cookies:
                 try:
                     self.driver.add_cookie(cookie)
-                except Exception as e:
+                except Exception:
+                    pass
 
             return True
 

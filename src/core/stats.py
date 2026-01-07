@@ -293,4 +293,3 @@ class StatisticsManager:
                 os.remove(self.stats_file)
             except Exception as e:
                 logger.error(f"Failed to delete statistics file: {e}")
-        else:

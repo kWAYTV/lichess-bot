@@ -77,4 +77,5 @@ class DebugUtils:
                 elements = driver.find_elements(by, selector)
                 for i, el in enumerate(elements[:5]):
                     pass
-            except Exception as e:
+            except Exception:
+                pass

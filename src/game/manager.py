@@ -94,8 +94,7 @@ class GameManager:
     def _show_cookie_status(self) -> None:
         """Show cookie status"""
         info = self.browser_manager.get_cookies_info()
-        if info["exists"]:
-        else:
+        if not info["exists"]:
             logger.warning("No cookies found")
 
     def _start_new_game(self) -> None:
@@ -161,7 +160,8 @@ class GameManager:
                     "preset": preset_name,
                     "initial_time": initial_time,
                 })
-        except Exception as e:
+        except Exception:
+            pass
 
     def _determine_color(self) -> None:
         """Determine player color"""
