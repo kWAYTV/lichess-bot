@@ -190,7 +190,7 @@ class BoardHandler:
 
             uci = board.push_san(move_text)
             who = "us" if is_our_move else "opponent"
-            logger.success(f"{ceil(move_number / 2)}. {uci.uci()} [{who}]")
+            logger.info(f"{ceil(move_number / 2)}. {uci.uci()} [{who}]")
             return True
 
         except Exception as e:

@@ -39,7 +39,7 @@ class LichessAuth:
         time.sleep(2)
 
         if self.browser_manager.is_logged_in():
-            logger.success("Logged in")
+            logger.info("Logged in")
             return True
 
         self.browser_manager.clear_cookies()

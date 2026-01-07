@@ -34,7 +34,7 @@ class ResultHandler:
             reason_el = driver.find_element(*Selectors.RESULT_REASON)
             reason = reason_el.text if reason_el else "Unknown"
 
-            logger.success(f"Game finished: {score} - {reason}")
+            logger.info(f"Game finished: {score} - {reason}")
 
             move_count = len(state.board.move_stack)
             result = self._determine_result(score, state.our_color_name)

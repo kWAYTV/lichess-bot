@@ -230,7 +230,7 @@ class BrowserRecoveryManager:
             self.browser_manager._setup_driver()
 
             if self.is_browser_healthy():
-                logger.success("Browser recovered")
+                logger.info("Browser recovered")
                 return True
             logger.error("Recovery failed")
             return False
