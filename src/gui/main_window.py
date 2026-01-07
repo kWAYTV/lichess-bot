@@ -43,14 +43,13 @@ class ChessBotGUI:
         self.root.minsize(280, 400)
         self.root.maxsize(400, 600)
         self.root.configure(bg="#1a1a1a")
-        self.root.attributes("-topmost", True)  # Always on top
+        self.root.attributes("-topmost", True)
 
         try:
             self.root.iconbitmap("assets/icon.ico")
-        except:
+        except tk.TclError:
             pass
 
-        # Override close button to minimize to tray
         self.root.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
 
         self.root.grid_columnconfigure(0, weight=1)
@@ -58,22 +57,19 @@ class ChessBotGUI:
 
     def _setup_layout(self):
         """Setup compact layout"""
-        # Header with status
         header = tk.Frame(self.root, bg="#252525", height=50)
         header.grid(row=0, column=0, sticky="ew", padx=8, pady=(8, 4))
         header.grid_columnconfigure(1, weight=1)
 
-        # Mode indicator
         self.mode_label = tk.Label(
             header,
-            text="⚡ AUTO",
+            text="AUTO",
             font=("Consolas", 10, "bold"),
             fg="#00DD88",
             bg="#252525",
         )
         self.mode_label.grid(row=0, column=0, padx=(10, 8), pady=8)
 
-        # Current suggestion
         self.suggestion_label = tk.Label(
             header,
             text="--",
@@ -83,17 +79,15 @@ class ChessBotGUI:
         )
         self.suggestion_label.grid(row=0, column=1, pady=8)
 
-        # Game status
         self.status_label = tk.Label(
             header,
-            text="●",
+            text="*",
             font=("Consolas", 12),
             fg="#888888",
             bg="#252525",
         )
         self.status_label.grid(row=0, column=2, padx=(8, 10), pady=8)
 
-        # Notebook for tabs
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("TNotebook", background="#1a1a1a", borderwidth=0)
@@ -113,7 +107,6 @@ class ChessBotGUI:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.grid(row=1, column=0, sticky="nsew", padx=8, pady=4)
 
-        # Board tab (first)
         board_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         board_frame.grid_columnconfigure(0, weight=1)
         board_frame.grid_rowconfigure(0, weight=1)
@@ -121,7 +114,6 @@ class ChessBotGUI:
         self.chess_board.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(board_frame, text="Board")
 
-        # Log tab
         log_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         log_frame.grid_columnconfigure(0, weight=1)
         log_frame.grid_rowconfigure(0, weight=1)
@@ -129,7 +121,6 @@ class ChessBotGUI:
         self.log_panel.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(log_frame, text="Log")
 
-        # Moves tab
         moves_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         moves_frame.grid_columnconfigure(0, weight=1)
         moves_frame.grid_rowconfigure(0, weight=1)
@@ -137,7 +128,6 @@ class ChessBotGUI:
         self.move_history.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(moves_frame, text="Moves")
 
-        # Stats tab
         stats_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         stats_frame.grid_columnconfigure(0, weight=1)
         stats_frame.grid_rowconfigure(0, weight=1)
@@ -145,16 +135,14 @@ class ChessBotGUI:
         self.stats_panel.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(stats_frame, text="Stats")
 
-        # Settings tab
         settings_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         settings_frame.grid_columnconfigure(0, weight=1)
         settings_frame.grid_rowconfigure(0, weight=1)
         config_mgr = self.game_manager.config_manager if self.game_manager else None
         self.settings_panel = SettingsPanelWidget(settings_frame, config_mgr)
         self.settings_panel.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
-        self.notebook.add(settings_frame, text="⚙")
+        self.notebook.add(settings_frame, text="Cfg")
 
-        # Footer
         footer = tk.Frame(self.root, bg="#1a1a1a", height=24)
         footer.grid(row=2, column=0, sticky="ew", padx=8, pady=(4, 8))
 
@@ -176,9 +164,9 @@ class ChessBotGUI:
 
         cfg = self.game_manager.config_manager
         if cfg.is_autoplay_enabled:
-            self.mode_label.configure(text="⚡ AUTO", fg="#00DD88")
+            self.mode_label.configure(text="AUTO", fg="#00DD88")
         else:
-            self.mode_label.configure(text=f"⌨ {cfg.move_key.upper()}", fg="#FFB347")
+            self.mode_label.configure(text=f"{cfg.move_key.upper()}", fg="#FFB347")
 
     def _setup_callbacks(self):
         """Setup callbacks"""
@@ -205,62 +193,74 @@ class ChessBotGUI:
 
     def update_from_game_manager(self, update_data: dict):
         """Handle game manager updates (thread-safe)"""
-        # Schedule update on main thread
         self.root.after(0, lambda: self._process_update(update_data))
 
     def _process_update(self, update_data: dict):
         """Process update on main thread"""
         try:
-            t = update_data.get("type")
+            msg_type = update_data.get("type")
 
-            if t == "board_update":
-                board = update_data.get("board")
-                last_move = update_data.get("last_move")
-                if board:
-                    self.current_board = board.copy()
-                    self.chess_board.update_position(board, last_move)
-                    if last_move:
-                        self.chess_board.clear_suggestion()
-                        self.current_suggestion = None
-
-            elif t == "suggestion":
-                move = update_data.get("move")
-                if move:
-                    self.suggestion_label.configure(text=str(move).upper())
-                    self.current_suggestion = move
-                    self.chess_board.show_suggestion(move)
-
-            elif t == "game_info":
-                if update_data.get("game_active"):
-                    self.status_label.configure(fg="#00DD88")
-                    color = update_data.get("our_color", "")
-                    self.footer_label.configure(text=f"Playing as {color}")
-                    if color:
-                        self.our_color = color
-                        self.chess_board.set_orientation(color)
-                else:
-                    self.status_label.configure(fg="#888888")
-
-            elif t == "move_played":
-                self.add_move_to_history(
-                    update_data.get("move"),
-                    update_data.get("move_number"),
-                    update_data.get("is_white"),
-                )
-                self.suggestion_label.configure(text="--")
-
-            elif t == "game_start":
-                self.move_history.clear_history()
-                self.suggestion_label.configure(text="--")
-
-            elif t == "game_finished":
+            if msg_type == "board_update":
+                self._handle_board_update(update_data)
+            elif msg_type == "suggestion":
+                self._handle_suggestion(update_data)
+            elif msg_type == "game_info":
+                self._handle_game_info(update_data)
+            elif msg_type == "move_played":
+                self._handle_move_played(update_data)
+            elif msg_type == "game_start":
+                self._handle_game_start()
+            elif msg_type == "game_finished":
                 self.show_game_result(update_data)
-
-            elif t == "statistics_update":
+            elif msg_type == "statistics_update":
                 self.stats_panel.update_statistics(update_data.get("stats", {}))
-
         except Exception as e:
             logger.error(f"GUI update error: {e}")
+
+    def _handle_board_update(self, update_data: dict):
+        """Handle board update"""
+        board = update_data.get("board")
+        last_move = update_data.get("last_move")
+        if board:
+            self.current_board = board.copy()
+            self.chess_board.update_position(board, last_move)
+            if last_move:
+                self.chess_board.clear_suggestion()
+                self.current_suggestion = None
+
+    def _handle_suggestion(self, update_data: dict):
+        """Handle suggestion update"""
+        move = update_data.get("move")
+        if move:
+            self.suggestion_label.configure(text=str(move).upper())
+            self.current_suggestion = move
+            self.chess_board.show_suggestion(move)
+
+    def _handle_game_info(self, update_data: dict):
+        """Handle game info update"""
+        if update_data.get("game_active"):
+            self.status_label.configure(fg="#00DD88")
+            color = update_data.get("our_color", "")
+            self.footer_label.configure(text=f"Playing as {color}")
+            if color:
+                self.our_color = color
+                self.chess_board.set_orientation(color)
+        else:
+            self.status_label.configure(fg="#888888")
+
+    def _handle_move_played(self, update_data: dict):
+        """Handle move played update"""
+        self.add_move_to_history(
+            update_data.get("move"),
+            update_data.get("move_number"),
+            update_data.get("is_white"),
+        )
+        self.suggestion_label.configure(text="--")
+
+    def _handle_game_start(self):
+        """Handle game start"""
+        self.move_history.clear_history()
+        self.suggestion_label.configure(text="--")
 
     def add_log(self, message: str, level: str = "info"):
         """Add log message"""
@@ -286,25 +286,20 @@ class ChessBotGUI:
     def _setup_tray_icon(self):
         """Setup system tray icon"""
         try:
-            # Load icon
             icon_path = "assets/icon.ico"
             if os.path.exists(icon_path):
                 image = Image.open(icon_path)
             else:
-                # Create a simple fallback icon (green circle)
                 image = Image.new("RGB", (64, 64), "#00DD88")
 
-            # Create tray menu
             menu = pystray.Menu(
                 pystray.MenuItem("Show", self._show_from_tray, default=True),
                 pystray.MenuItem("Exit", self._quit_from_tray),
             )
 
             self.tray_icon = pystray.Icon("ChessBot", image, "Chess Bot", menu)
-
-            # Run tray icon in background thread
             threading.Thread(target=self.tray_icon.run, daemon=True).start()
-        except Exception as e:
+        except Exception:
             self.tray_icon = None
 
     def _minimize_to_tray(self):
@@ -313,7 +308,7 @@ class ChessBotGUI:
         if self.tray_icon:
             self.tray_icon.notify("Chess Bot minimized to tray", "Chess Bot")
 
-    def _show_from_tray(self, icon=None, item=None):
+    def _show_from_tray(self, _icon=None, _item=None):
         """Restore window from tray"""
         self.root.after(0, self._restore_window)
 
@@ -323,7 +318,7 @@ class ChessBotGUI:
         self.root.lift()
         self.root.focus_force()
 
-    def _quit_from_tray(self, icon=None, item=None):
+    def _quit_from_tray(self, _icon=None, _item=None):
         """Quit app from tray"""
         if self.tray_icon:
             self.tray_icon.stop()
@@ -342,7 +337,7 @@ class ChessBotGUI:
         if self.tray_icon:
             try:
                 self.tray_icon.stop()
-            except:
+            except Exception:
                 pass
         if self.root:
             self.root.destroy()

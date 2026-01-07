@@ -2,7 +2,6 @@
 
 import tkinter as tk
 from datetime import datetime
-from tkinter import ttk
 from typing import Dict
 
 
@@ -13,26 +12,21 @@ class LogPanelWidget(tk.Frame):
         super().__init__(parent, bg="#1e1e2e", **kwargs)
         self.compact = compact
 
-        # Configuration
-        self.max_lines = 300  # Reduced from 500 to reduce memory usage
+        self.max_lines = 300
         self.auto_scroll = True
 
-        # Log level filtering
-        self.visible_levels = {"info", "success", "warning", "error", "critical"}  # Hide debug by default
+        self.visible_levels = {"info", "success", "warning", "error", "critical"}
 
-        # Rate limiting to prevent spam
         self.last_log_time = 0
-        self.min_log_interval = 0.1  # Minimum 100ms between similar logs
-        self.recent_messages = {}  # Track recent messages to prevent duplicates
+        self.min_log_interval = 0.1
+        self.recent_messages = {}
 
-        # Monochromatic colors - only black, white, gray
-        self.bg_color = "#1a1a1a"  # Dark gray background
-        self.surface_color = "#2a2a2a"  # Slightly lighter surface
-        self.accent_color = "#404040"  # Medium gray accent
-        self.text_color = "#ffffff"  # Pure white text
-        self.secondary_text = "#cccccc"  # Light gray text
+        self.bg_color = "#1a1a1a"
+        self.surface_color = "#2a2a2a"
+        self.accent_color = "#404040"
+        self.text_color = "#ffffff"
+        self.secondary_text = "#cccccc"
 
-        # Modern log level colors
         self.level_colors: Dict[str, str] = {
             "trace": "#6c7086",
             "debug": "#6c7086",
@@ -50,7 +44,6 @@ class LogPanelWidget(tk.Frame):
         """Create all log panel widgets"""
         font_size = 8 if self.compact else 9
 
-        # Sleek header
         self.header_frame = tk.Frame(self, bg=self.surface_color)
 
         self.clear_button = tk.Button(
@@ -96,7 +89,6 @@ class LogPanelWidget(tk.Frame):
             activeforeground=self.text_color,
         )
 
-        # Log display area
         self.log_frame = tk.Frame(self, bg=self.surface_color, relief="flat", borderwidth=1)
 
         self.log_text = tk.Text(
@@ -124,7 +116,6 @@ class LogPanelWidget(tk.Frame):
 
         self.log_text.configure(yscrollcommand=self.scrollbar.set)
 
-        # Configure text tags for different log levels
         for level, color in self.level_colors.items():
             self.log_text.tag_configure(level, foreground=color)
 
@@ -133,7 +124,6 @@ class LogPanelWidget(tk.Frame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        # Compact header
         self.header_frame.grid(row=0, column=0, sticky="ew", pady=(2, 2))
         self.header_frame.grid_columnconfigure(0, weight=1)
 
@@ -141,7 +131,6 @@ class LogPanelWidget(tk.Frame):
         self.auto_scroll_checkbox.grid(row=0, column=1, sticky="e", padx=(0, 4))
         self.clear_button.grid(row=0, column=2, sticky="e")
 
-        # Compact log area
         self.log_frame.grid(row=1, column=0, sticky="nsew", pady=(0, 2))
         self.log_frame.grid_columnconfigure(0, weight=1)
         self.log_frame.grid_rowconfigure(0, weight=1)
@@ -153,51 +142,43 @@ class LogPanelWidget(tk.Frame):
         """Add a log message with timestamp and level"""
         level = level.lower()
 
-        # Filter out messages based on visibility settings
         if level not in self.visible_levels:
             return
 
-        # Rate limiting and duplicate prevention
         current_time = datetime.now().timestamp()
         message_key = f"{level}:{message}"
 
-        # Prevent exact duplicates within 2 seconds
         if message_key in self.recent_messages:
             if current_time - self.recent_messages[message_key] < 2.0:
                 return
 
-        # Rate limiting - minimum interval between any logs
         if current_time - self.last_log_time < self.min_log_interval:
             return
 
         self.recent_messages[message_key] = current_time
         self.last_log_time = current_time
 
-        # Clean up old entries from recent_messages (keep last 50)
         if len(self.recent_messages) > 50:
-            oldest_key = min(self.recent_messages.keys(), key=lambda k: self.recent_messages[k])
+            oldest_key = min(
+                self.recent_messages.keys(), key=lambda k: self.recent_messages[k]
+            )
             del self.recent_messages[oldest_key]
 
         timestamp = datetime.now().strftime("%H:%M:%S")
 
-        # Format the log entry
         log_entry = f"[{timestamp}] {message}\n"
 
-        # Insert the log entry
         self.log_text.configure(state=tk.NORMAL)
 
-        # Insert with appropriate color
         if level in self.level_colors:
             self.log_text.insert(tk.END, log_entry, level)
         else:
             self.log_text.insert(tk.END, log_entry, "info")
 
-        # Manage line count
         self._manage_line_count()
 
         self.log_text.configure(state=tk.DISABLED)
 
-        # Auto-scroll if enabled
         if self.auto_scroll:
             self.log_text.see(tk.END)
 
@@ -205,7 +186,6 @@ class LogPanelWidget(tk.Frame):
         """Keep log text under the maximum line limit"""
         lines = self.log_text.get("1.0", tk.END).count("\n")
         if lines > self.max_lines:
-            # Remove oldest lines
             lines_to_remove = lines - self.max_lines
             self.log_text.delete("1.0", f"{lines_to_remove + 1}.0")
 
@@ -248,7 +228,6 @@ class LogPanelWidget(tk.Frame):
 
             level = level.lower()
 
-            # Filter out messages based on visibility settings
             if level not in self.visible_levels:
                 continue
 

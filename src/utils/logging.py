@@ -27,5 +27,3 @@ class GUILogHandler:
 
     def flush(self):
         """Required for file-like objects"""
-        pass
-

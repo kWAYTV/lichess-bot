@@ -19,7 +19,6 @@ class GamePreset:
     description: str
 
 
-# Preset definitions
 PRESETS: Dict[str, GamePreset] = {
     "bullet": GamePreset(
         name="Bullet",
@@ -87,33 +86,30 @@ def apply_preset(config_manager, preset_name: str) -> bool:
     preset = get_preset(preset_name)
     if not preset:
         return False
-    
-    # Engine settings
+
     config_manager.set("engine", "depth", str(preset.depth))
     config_manager.set("engine", "skill-level", str(preset.skill_level))
-    
-    # Humanization delays
+
     config_manager.set("humanization", "min-delay", str(preset.min_delay))
     config_manager.set("humanization", "max-delay", str(preset.max_delay))
     config_manager.set("humanization", "moving-min-delay", str(preset.moving_min))
     config_manager.set("humanization", "moving-max-delay", str(preset.moving_max))
     config_manager.set("humanization", "thinking-min-delay", str(preset.thinking_min))
     config_manager.set("humanization", "thinking-max-delay", str(preset.thinking_max))
-    
+
     config_manager.save()
     return True
 
 
 def detect_preset_from_time(initial_seconds: int) -> str:
     """Detect which preset to use based on initial clock time in seconds"""
-    if initial_seconds <= 120:  # 2 min or less
+    if initial_seconds <= 120:
         return "bullet"
-    elif initial_seconds <= 300:  # 5 min or less
+    if initial_seconds <= 300:
         return "blitz"
-    elif initial_seconds <= 900:  # 15 min or less
+    if initial_seconds <= 900:
         return "rapid"
-    else:  # 15+ min
-        return "classical"
+    return "classical"
 
 
 def auto_apply_preset(config_manager, initial_seconds: int) -> str:
@@ -121,4 +117,3 @@ def auto_apply_preset(config_manager, initial_seconds: int) -> str:
     preset_name = detect_preset_from_time(initial_seconds)
     apply_preset(config_manager, preset_name)
     return preset_name
-

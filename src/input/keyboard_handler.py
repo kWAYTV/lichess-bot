@@ -2,7 +2,6 @@
 
 from typing import Callable, Optional
 
-from loguru import logger
 from pynput import keyboard
 
 from ..config import ConfigManager
@@ -26,7 +25,7 @@ class KeyboardHandler:
         key_string = str(key)
         move_key = self.config_manager.move_key
 
-        if key_string == move_key or key_string == "Key." + move_key:
+        if key_string in (move_key, "Key." + move_key):
             self.make_move = True
             if self.on_move_key_press:
                 self.on_move_key_press()
@@ -36,7 +35,7 @@ class KeyboardHandler:
         key_string = str(key)
         move_key = self.config_manager.move_key
 
-        if key_string == move_key or key_string == "Key." + move_key:
+        if key_string in (move_key, "Key." + move_key):
             self.make_move = False
 
     def start_listening(self) -> None:

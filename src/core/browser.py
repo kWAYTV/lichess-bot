@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from ..config.manager import ConfigManager
 from ..constants import Selectors
 from ..utils.helpers import get_geckodriver_path, install_firefox_extensions
-from ..utils.resilience import browser_retry, element_retry, safe_execute
+from ..utils.resilience import browser_retry, element_retry
 
 
 def find_firefox_binary() -> Optional[str]:
@@ -36,7 +36,7 @@ def find_firefox_binary() -> Optional[str]:
         result = shutil.which("firefox")
         if result:
             return result
-    except:
+    except Exception:
         pass
 
     logger.warning("Firefox not found")
@@ -72,9 +72,11 @@ class BrowserManager:
             if firefox_binary:
                 options.binary_location = firefox_binary
 
-            options.add_argument(
-                '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"'
+            user_agent = (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) "
+                "Gecko/20100101 Firefox/109.0"
             )
+            options.add_argument(f'--user-agent="{user_agent}"')
 
             service = webdriver.firefox.service.Service(
                 executable_path=get_geckodriver_path()
@@ -135,15 +137,13 @@ class BrowserManager:
         """Get current URL"""
         return self.driver.current_url if self.driver else ""
 
-    # Cookie management
-
     def save_cookies(self) -> None:
         """Save current cookies to file"""
         if not self.driver:
             return
         try:
             cookies = self.driver.get_cookies()
-            with open(self.COOKIES_FILE, "w") as f:
+            with open(self.COOKIES_FILE, "w", encoding="utf-8") as f:
                 json.dump(cookies, f, indent=2)
         except Exception as e:
             logger.error(f"Failed to save cookies: {e}")
@@ -154,7 +154,7 @@ class BrowserManager:
             return False
 
         try:
-            with open(self.COOKIES_FILE, "r") as f:
+            with open(self.COOKIES_FILE, "r", encoding="utf-8") as f:
                 cookies = json.load(f)
 
             if not self.driver or not self.current_url.startswith("https://lichess.org"):
@@ -188,7 +188,7 @@ class BrowserManager:
             return {"exists": False, "count": 0, "file_size": 0}
 
         try:
-            with open(self.COOKIES_FILE, "r") as f:
+            with open(self.COOKIES_FILE, "r", encoding="utf-8") as f:
                 cookies = json.load(f)
             return {
                 "exists": True,
@@ -205,23 +205,21 @@ class BrowserManager:
             return False
 
         try:
-            # Check CSS selectors
             for selector in Selectors.LOGIN_INDICATORS:
                 try:
                     el = self.driver.find_element(By.CSS_SELECTOR, selector)
                     if el and el.text.strip():
                         return True
-                except:
+                except Exception:
                     continue
 
-            # Check page source
             source = self.driver.page_source.lower()
             if any(ind in source for ind in Selectors.LOGIN_PAGE_INDICATORS):
                 return True
 
             return False
 
-        except Exception as e:
+        except Exception:
             return False
 
     def close(self) -> None:

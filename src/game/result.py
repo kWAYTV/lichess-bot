@@ -3,7 +3,6 @@
 from typing import Callable
 
 from loguru import logger
-from selenium.webdriver.common.by import By
 
 from ..constants import Selectors
 from ..core.browser import BrowserManager
@@ -55,12 +54,11 @@ class ResultHandler:
                 "move_count": move_count,
             })
 
-            # Send updated stats
             overall = self.stats.get_overall_stats()
             overall["recent_games"] = self.stats.get_recent_games(5)
             self.notify_gui({"type": "statistics_update", "stats": overall})
 
-        except Exception as e:
+        except Exception:
             logger.info("Game finished")
 
             self.notify_gui({
@@ -75,9 +73,8 @@ class ResultHandler:
         """Determine result from score"""
         if score == "1-0":
             return "win" if our_color == "white" else "loss"
-        elif score == "0-1":
+        if score == "0-1":
             return "win" if our_color == "black" else "loss"
-        elif score == "1/2-1/2":
+        if score == "1/2-1/2":
             return "draw"
         return "unknown"
-

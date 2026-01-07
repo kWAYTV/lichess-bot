@@ -14,7 +14,7 @@ class MoveHistoryWidget(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg="#1e1e2e", **kwargs)
 
-        self.moves: List[tuple] = []  # [(move_number, white_move, black_move), ...]
+        self.moves: List[tuple] = []
         self.current_move_number = 0
 
         self.bg_color = "#1a1a1a"
@@ -83,10 +83,9 @@ class MoveHistoryWidget(tk.Frame):
             bg="#2B2B2B",
         )
 
-        # Copy PGN button
         self.copy_btn = tk.Button(
             self,
-            text="📋 Copy PGN",
+            text="Copy PGN",
             font=("Segoe UI", 9),
             fg="#ffffff",
             bg="#3a3a4a",
@@ -132,7 +131,10 @@ class MoveHistoryWidget(tk.Frame):
             if pair_number > len(self.moves):
                 self.moves.append((pair_number, "", move_str))
             else:
-                white_move = self.moves[pair_number - 1][1] if pair_number <= len(self.moves) else ""
+                white_move = (
+                    self.moves[pair_number - 1][1]
+                    if pair_number <= len(self.moves) else ""
+                )
                 self.moves[pair_number - 1] = (pair_number, white_move, move_str)
 
         self.current_move_number = move_number
@@ -144,13 +146,17 @@ class MoveHistoryWidget(tk.Frame):
             self.tree.delete(item)
 
         for move_num, white_move, black_move in self.moves:
-            self.tree.insert("", "end", values=(move_num, white_move or "-", black_move or "-"))
+            self.tree.insert(
+                "", "end", values=(move_num, white_move or "-", black_move or "-")
+            )
 
         if self.moves:
             self.tree.see(self.tree.get_children()[-1])
 
         total = sum(1 for m in self.moves if m[1]) + sum(1 for m in self.moves if m[2])
-        self.status_label.configure(text=f"Total moves: {total}" if total else "No moves yet")
+        self.status_label.configure(
+            text=f"Total moves: {total}" if total else "No moves yet"
+        )
 
     def clear_history(self):
         """Clear all move history"""
@@ -186,7 +192,7 @@ class MoveHistoryWidget(tk.Frame):
         try:
             self.clipboard_clear()
             self.clipboard_append(pgn)
-            self.update()  # Required for clipboard to persist
+            self.update()
             self._flash_button("Copied!", "#66ff66")
         except Exception as e:
             logger.error(f"Failed to copy PGN: {e}")
@@ -198,4 +204,6 @@ class MoveHistoryWidget(tk.Frame):
         original_bg = self.copy_btn.cget("bg")
 
         self.copy_btn.configure(text=text, bg=color)
-        self.after(1500, lambda: self.copy_btn.configure(text=original_text, bg=original_bg))
+        self.after(
+            1500, lambda: self.copy_btn.configure(text=original_text, bg=original_bg)
+        )

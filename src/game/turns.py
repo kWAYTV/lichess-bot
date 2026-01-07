@@ -1,7 +1,7 @@
 """Turn handling logic"""
 
 from time import sleep
-from typing import Optional, Callable
+from typing import Callable
 
 import chess
 from loguru import logger
@@ -36,19 +36,15 @@ class TurnHandler:
 
     def handle_our_turn(self, state: GameState, move_number: int) -> int:
         """Handle our turn, return next move number"""
-        # Check if move already made
         move_text = self.board_handler.check_for_move(move_number)
         if move_text:
             return self._process_existing_move(state, move_text, move_number)
 
-        # Get engine suggestion
         move = self._get_engine_move(state, move_number)
 
-        # Execute based on mode
         if self.config.is_autoplay_enabled:
             return self._execute_auto(state, move, move_number)
-        else:
-            return self._handle_manual(state, move, move_number)
+        return self._handle_manual(state, move, move_number)
 
     def handle_opponent_turn(self, state: GameState, move_number: int) -> int:
         """Handle opponent turn, return next move number"""
@@ -57,7 +53,6 @@ class TurnHandler:
         move_text = self.board_handler.check_for_move(move_number)
         if not move_text:
             return move_number
-
 
         if not self.board_handler.validate_and_push_move(
             state.board, move_text, move_number, False
@@ -113,7 +108,7 @@ class TurnHandler:
             if time is None:
                 return 999
             return time
-        except Exception as e:
+        except Exception:
             return 999
 
     def _get_engine_move(self, state: GameState, move_number: int) -> chess.Move:
@@ -121,16 +116,14 @@ class TurnHandler:
         remaining = self._get_remaining_time()
         base_depth = int(self.config.get("engine", "depth", 5))
         depth = self._adjust_depth_for_time(base_depth)
-        
-        advanced_humanized_delay("engine thinking", self.config, "thinking", remaining)
+
+        advanced_humanized_delay(self.config, "thinking", remaining)
 
         result = self.engine.get_best_move(state.board, depth=depth)
         move = result.move
-        src, dst = str(move)[:2], str(move)[2:]
 
         logger.info(f"Suggest: {move} [d={depth}]")
 
-        # Track evaluation
         eval_data = {
             "depth": depth,
             "score": getattr(result, "info", {}).get("score"),
@@ -138,7 +131,6 @@ class TurnHandler:
         }
         self.stats.add_evaluation(eval_data)
 
-        # Notify GUI
         self.notify_gui({"type": "suggestion", "move": move, "evaluation": eval_data})
         self.notify_gui({
             "type": "game_info",
@@ -154,12 +146,11 @@ class TurnHandler:
         """Execute move automatically"""
         remaining = self._get_remaining_time()
 
-        # Skip arrow display if time is critical
         if self.config.show_arrow and remaining > 30:
             self.board_handler.draw_arrow(move, state.our_color)
-            advanced_humanized_delay("showing arrow", self.config, "base", remaining)
+            advanced_humanized_delay(self.config, "base", remaining)
 
-        self.board_handler.execute_move(move, move_number, remaining)
+        self.board_handler.execute_move(move, remaining)
         state.board.push(move)
 
         is_white = (move_number % 2) == 1
@@ -177,7 +168,6 @@ class TurnHandler:
         self, state: GameState, move: chess.Move, move_number: int
     ) -> int:
         """Handle manual move execution"""
-        # Draw arrow if new suggestion
         if state.current_suggestion != move:
             state.current_suggestion = move
             state.arrow_drawn = False
@@ -186,17 +176,14 @@ class TurnHandler:
             self.board_handler.draw_arrow(move, state.our_color)
             state.arrow_drawn = True
 
-        # Check for key press
         if not self.keyboard.should_make_move():
-            src, dst = str(move)[:2], str(move)[2:]
             logger.info(f"Suggest: {move} - press {self.config.move_key}")
             sleep(0.1)
             return move_number
 
-        # Execute on keypress
         logger.info(f"Executing: {move}")
         remaining = self._get_remaining_time()
-        self.board_handler.execute_move(move, move_number, remaining)
+        self.board_handler.execute_move(move, remaining)
         self.keyboard.reset_move_state()
         state.board.push(move)
 
@@ -221,7 +208,6 @@ class TurnHandler:
             if our_time is None:
                 return base_depth
 
-            # Time-based depth scaling
             if our_time < 10:
                 depth = min(base_depth, 2)
                 logger.warning(f"Critical time {our_time}s, depth={depth}")
@@ -233,6 +219,5 @@ class TurnHandler:
                 depth = base_depth
 
             return depth
-        except Exception as e:
+        except Exception:
             return base_depth
-

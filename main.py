@@ -15,7 +15,7 @@ from src.utils.logging import GUILogHandler
 def main():
     """Main entry point for the chess bot"""
     game_manager = None
-    
+
     try:
         signal.signal(signal.SIGINT, signal_handler)
         clear_screen()
@@ -23,7 +23,6 @@ def main():
         config = ConfigManager()
         gui_handler = GUILogHandler()
 
-        # Setup logging
         logger.remove()
         logger.add(sys.stderr, level=config.log_level)
 
@@ -36,7 +35,6 @@ def main():
         gui = ChessBotGUI(game_manager)
         gui_handler.set_gui(gui)
 
-        # Log mode
         if config.is_autoplay_enabled:
             logger.info("AutoPlay MODE: Bot will make moves automatically")
         else:
@@ -57,8 +55,8 @@ def main():
                 logger.error(f"Cleanup error: {e}")
                 try:
                     if game_manager.browser_manager and game_manager.browser_manager.driver:
-                            game_manager.browser_manager.driver.quit()
-                except:
+                        game_manager.browser_manager.driver.quit()
+                except Exception:
                     pass
 
 

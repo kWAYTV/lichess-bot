@@ -4,8 +4,6 @@ import configparser
 import os
 from typing import Any, Dict, Optional
 
-from loguru import logger
-
 from ..utils.helpers import get_stockfish_path
 
 
@@ -65,7 +63,7 @@ class ConfigManager:
             "firefox-binary-path": "",
         }
 
-        with open(self._config_path, "w") as f:
+        with open(self._config_path, "w", encoding="utf-8") as f:
             self.config.write(f)
 
     def get(self, section: str, key: str, fallback: Any = None) -> Any:
@@ -90,49 +88,57 @@ class ConfigManager:
 
     def save(self) -> None:
         """Save config to file"""
-        with open(self._config_path, "w") as f:
+        with open(self._config_path, "w", encoding="utf-8") as f:
             self.config.write(f)
-
-    # Properties
 
     @property
     def engine_config(self) -> Dict[str, str]:
+        """Get engine configuration section"""
         return self.get_section("engine")
 
     @property
     def general_config(self) -> Dict[str, str]:
+        """Get general configuration section"""
         return self.get_section("general")
 
     @property
     def humanization_config(self) -> Dict[str, str]:
+        """Get humanization configuration section"""
         return self.get_section("humanization")
 
     @property
     def browser_config(self) -> Dict[str, str]:
+        """Get browser configuration section"""
         return self.get_section("browser")
 
     @property
     def is_autoplay_enabled(self) -> bool:
+        """Check if autoplay is enabled"""
         return self.get("general", "auto-play", "false").lower() == "true"
 
     @property
     def is_auto_preset_enabled(self) -> bool:
+        """Check if auto-preset is enabled"""
         return self.get("general", "auto-preset", "true").lower() == "true"
 
     @property
     def move_key(self) -> str:
+        """Get move key"""
         return self.get("general", "move-key", "end")
 
     @property
     def show_arrow(self) -> bool:
+        """Check if arrow display is enabled"""
         return self.get("general", "arrow", "true").lower() == "true"
 
     @property
     def firefox_binary_path(self) -> str:
+        """Get Firefox binary path"""
         return self.get("browser", "firefox-binary-path", "")
 
     @property
     def log_level(self) -> str:
+        """Get log level"""
         level = self.get("general", "log-level", "INFO").upper()
         if level not in self.VALID_LOG_LEVELS:
             return "INFO"
@@ -146,11 +152,11 @@ class ConfigManager:
             "moving": ("moving-min-delay", "moving-max-delay", 0.5, 2.5),
             "thinking": ("thinking-min-delay", "thinking-max-delay", 0.8, 3.0),
         }
-        
+
         min_key, max_key, default_min, default_max = delays.get(
             delay_type, delays["base"]
         )
-        
+
         return (
             float(cfg.get(min_key, default_min)),
             float(cfg.get(max_key, default_max)),

@@ -37,32 +37,27 @@ class DebugUtils:
         try:
             ts = int(time.time())
 
-            # Screenshot
             path = os.path.join(self.debug_dir, f"screenshot_move{move_number}_{ts}.png")
             driver.save_screenshot(path)
 
-            # Page source
             path = os.path.join(self.debug_dir, f"page_move{move_number}_{ts}.html")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
 
-            # Board state
             if board:
                 path = os.path.join(self.debug_dir, f"board_move{move_number}_{ts}.txt")
-                with open(path, "w") as f:
+                with open(path, "w", encoding="utf-8") as f:
                     f.write(f"FEN: {board.fen()}\n")
                     f.write(f"Board:\n{board}\n")
                     f.write(f"Legal moves: {[str(m) for m in board.legal_moves]}\n")
                     f.write(f"Turn: {'White' if board.turn else 'Black'}\n")
                     f.write(f"Move number: {move_number}\n")
 
-
         except Exception as e:
             logger.error(f"Failed to save debug info: {e}")
 
     def debug_move_list_structure(self, driver) -> None:
         """Debug function to inspect move list HTML structure"""
-
         selectors = [
             (".moves .move", By.CSS_SELECTOR),
             (".move-list .move", By.CSS_SELECTOR),
@@ -74,8 +69,6 @@ class DebugUtils:
 
         for selector, by in selectors:
             try:
-                elements = driver.find_elements(by, selector)
-                for i, el in enumerate(elements[:5]):
-                    pass
+                driver.find_elements(by, selector)
             except Exception:
                 pass

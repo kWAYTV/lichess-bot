@@ -39,7 +39,7 @@ class CircuitBreaker:
             if self._should_attempt_reset():
                 self.state = CircuitState.HALF_OPEN
             else:
-                raise Exception("Circuit breaker is OPEN - too many failures")
+                raise RuntimeError("Circuit breaker is OPEN - too many failures")
 
         try:
             result = func(*args, **kwargs)
@@ -73,7 +73,6 @@ class CircuitBreaker:
                 self.state = CircuitState.OPEN
 
 
-# Global circuit breakers for different operations
 browser_circuit_breaker = CircuitBreaker(failure_threshold=3, timeout=120.0)
 element_circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=60.0)
 move_circuit_breaker = CircuitBreaker(failure_threshold=7, timeout=30.0)
@@ -87,17 +86,7 @@ def retry_on_exception(
     circuit_breaker: Optional[CircuitBreaker] = None,
     fallback_func: Optional[Callable] = None,
 ) -> Callable:
-    """
-    Decorator for retrying functions on specific exceptions
-
-    Args:
-        max_retries: Maximum number of retry attempts
-        delay: Initial delay between retries (seconds)
-        backoff_factor: Exponential backoff multiplier
-        exceptions: Exception types to retry on
-        circuit_breaker: Optional circuit breaker to use
-        fallback_func: Optional fallback function to call if all retries fail
-    """
+    """Decorator for retrying functions on specific exceptions"""
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -109,31 +98,29 @@ def retry_on_exception(
                 try:
                     if circuit_breaker:
                         return circuit_breaker.call(func, *args, **kwargs)
-                    else:
-                        return func(*args, **kwargs)
+                    return func(*args, **kwargs)
 
                 except exceptions as e:
                     last_exception = e
 
                     if attempt < max_retries:
                         logger.warning(
-                            f"Retry {attempt + 1}/{max_retries} for {func.__name__}: {str(e)}"
+                            f"Retry {attempt + 1}/{max_retries} for {func.__name__}: {e}"
                         )
                         time.sleep(current_delay)
                         current_delay *= backoff_factor
                     else:
                         logger.error(
-                            f"All {max_retries} retries failed for {func.__name__}: {str(e)}"
+                            f"All {max_retries} retries failed for {func.__name__}: {e}"
                         )
 
-                        # Try fallback if available
                         if fallback_func:
                             try:
                                 return fallback_func(*args, **kwargs)
                             except Exception as fallback_error:
                                 logger.error(f"Fallback also failed: {fallback_error}")
 
-                        raise last_exception
+                        raise last_exception from e
 
             raise last_exception
 
@@ -198,18 +185,16 @@ class BrowserRecoveryManager:
         self.recovery_attempts = 0
         self.max_recovery_attempts = 3
         self.last_recovery_time = None
-        self.recovery_cooldown = 300  # 5 minutes
+        self.recovery_cooldown = 300
 
     def is_browser_healthy(self) -> bool:
         """Check if browser is healthy and responsive"""
         try:
             if not self.browser_manager.driver:
                 return False
-
-            # Try to get current URL as a health check
             _ = self.browser_manager.driver.current_url
             return True
-        except Exception as e:
+        except Exception:
             return False
 
     def can_attempt_recovery(self) -> bool:
@@ -235,24 +220,20 @@ class BrowserRecoveryManager:
         self.last_recovery_time = time.time()
 
         try:
-            # Close existing driver if possible
             if self.browser_manager.driver:
                 try:
                     self.browser_manager.driver.quit()
-                except:
+                except Exception:
                     pass
                 self.browser_manager.driver = None
 
-            # Reinitialize browser
             self.browser_manager._setup_driver()
 
-            # Basic health check
             if self.is_browser_healthy():
                 logger.success("Browser recovered")
                 return True
-            else:
-                logger.error("Recovery failed")
-                return False
+            logger.error("Recovery failed")
+            return False
 
         except Exception as e:
             logger.error(f"Browser recovery failed: {e}")
@@ -284,8 +265,7 @@ def with_browser_recovery(recovery_manager: BrowserRecoveryManager) -> Callable:
                     except Exception as retry_error:
                         logger.error(f"Operation failed after recovery: {retry_error}")
                         raise retry_error
-                else:
-                    raise e
+                raise e
 
         return wrapper
 
@@ -304,31 +284,21 @@ def safe_execute(
         return default_return
 
 
-def validate_game_state(board, move_number: int, expected_moves: int = None) -> bool:
+def validate_game_state(board, _move_number: int) -> bool:
     """Validate current game state consistency"""
     try:
-        # Basic board state validation
         if not board:
             return False
 
-        # Check if board is in valid state
         if board.is_game_over():
             return True
 
-        # Check move number consistency
-        actual_moves = len(board.move_stack)
-        if expected_moves and abs(actual_moves - expected_moves) > 1:
-            logger.warning(f"Move count mismatch: {expected_moves} vs {actual_moves}")
-            return False
-
-        # Check for illegal positions
         if board.is_check() and board.is_checkmate():
             return True
 
         if board.is_stalemate():
             return True
 
-        # Check if we have legal moves
         if not list(board.legal_moves):
             logger.warning("No legal moves")
             return False

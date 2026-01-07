@@ -28,7 +28,7 @@ class GameManager:
 
     def __init__(self):
         self.config = ConfigManager()
-        self.config_manager = self.config  # Alias for GUI compatibility
+        self.config_manager = self.config
         self.browser_manager = BrowserManager()
         self.debug = DebugUtils()
         self.board_handler = BoardHandler(
@@ -43,7 +43,6 @@ class GameManager:
         self.state = GameState()
         self.gui_callback: Optional[Callable] = None
 
-        # Initialize handlers
         self.turn_handler = TurnHandler(
             self.config,
             self.board_handler,
@@ -100,16 +99,12 @@ class GameManager:
     def _start_new_game(self) -> None:
         """Initialize and start a new game"""
         self.state.reset()
-
-        # Wait for any previous game over screen to clear
         self._wait_for_game_over_clear()
 
         if not self._wait_for_game_ready():
             return
 
-        # Auto-detect preset from clock time
         self._apply_auto_preset()
-
         self._determine_color()
         self.stats.start_new_game(our_color=self.state.our_color_name)
         self._notify_gui({
@@ -123,7 +118,7 @@ class GameManager:
 
     def _wait_for_game_over_clear(self) -> None:
         """Wait for game over screen to clear before looking for new game"""
-        max_wait = 30  # Max 30 seconds
+        max_wait = 30
         waited = 0
         while self.board_handler.is_game_over() and waited < max_wait:
             sleep(1)
@@ -132,14 +127,14 @@ class GameManager:
     def _wait_for_game_ready(self) -> bool:
         """Wait for game to be ready - polls continuously"""
         logger.info("Waiting for game...")
-        poll_interval = 3  # seconds between checks
+        poll_interval = 3
 
         while True:
             try:
                 if self.board_handler.wait_for_game_ready():
                     return True
                 sleep(poll_interval)
-            except Exception as e:
+            except Exception:
                 if not self.recovery.is_browser_healthy():
                     if not self.recovery.attempt_browser_recovery():
                         return False
@@ -230,7 +225,6 @@ class GameManager:
 
     def _handle_game_end(self) -> None:
         """Handle game end"""
-
         if not self.state.result_logged:
             self.result_handler.log_result(self.state)
             self.state.result_logged = True
@@ -259,10 +253,7 @@ class GameManager:
 
     def cleanup(self) -> None:
         """Clean up resources"""
-
         safe_execute(self.keyboard.stop_listening, log_errors=True)
         safe_execute(self.engine.quit, log_errors=True)
         safe_execute(self.browser_manager.close, log_errors=True)
-
         logger.info("Stopped")
-

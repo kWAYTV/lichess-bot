@@ -12,9 +12,8 @@ class ChessBoardWidget(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg="#2B2B2B", **kwargs)
 
-        # Board configuration - compact for overlay
-        self.base_size = 280  # Compact board size
-        self.orientation = "white"  # "white" or "black"
+        self.base_size = 280
+        self.orientation = "white"
 
         self.light_square_color = "#4a4a4a"
         self.dark_square_color = "#2a2a2a"
@@ -27,14 +26,16 @@ class ChessBoardWidget(tk.Frame):
         self.last_move = None
         self.suggestion_move = None
 
+        # Initialize sizes in __init__
+        self.board_size = self.base_size
+        self.square_size = self.board_size // 8
+
         self._create_canvas()
         self._draw_initial_board()
 
-        # Configure grid
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # Bind resize events
         self.bind("<Configure>", self._on_resize)
 
     def _create_canvas(self):
@@ -44,22 +45,18 @@ class ChessBoardWidget(tk.Frame):
         )
         self.canvas.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Bind canvas resize
         self.canvas.bind("<Configure>", self._on_canvas_resize)
 
-    def _on_resize(self, event):
-        """Handle widget resize"""
-        pass  # Canvas handles its own resize
+    def _on_resize(self, _event):
+        """Handle widget resize - canvas handles its own resize"""
 
     def _on_canvas_resize(self, event):
         """Handle canvas resize and redraw board"""
-        # Calculate new board size based on available space
-        available_width = event.width - 20  # Padding
-        available_height = event.height - 20  # Padding
+        available_width = event.width - 20
+        available_height = event.height - 20
 
-        # Keep it square - compact max size
-        new_size = min(available_width, available_height, 350)  # Max 350px
-        if new_size > 100:  # Minimum size
+        new_size = min(available_width, available_height, 350)
+        if new_size > 100:
             self.board_size = new_size
             self.square_size = self.board_size // 8
             self._redraw_all()
@@ -84,7 +81,6 @@ class ChessBoardWidget(tk.Frame):
         start_x = (self.canvas.winfo_width() - self.board_size) // 2
         start_y = (self.canvas.winfo_height() - self.board_size) // 2
 
-        # Ensure we have valid canvas dimensions
         if start_x < 0:
             start_x = 10
         if start_y < 0:
@@ -97,21 +93,14 @@ class ChessBoardWidget(tk.Frame):
                 x2 = x1 + self.square_size
                 y2 = y1 + self.square_size
 
-                # Determine square color
                 is_light = (rank + file) % 2 == 0
                 color = self.light_square_color if is_light else self.dark_square_color
 
-                # Highlight last move
-                if self.last_move and self._is_square_in_move(
-                    rank, file, self.last_move
-                ):
+                if self.last_move and self._is_square_in_move(rank, file, self.last_move):
                     color = self.last_move_color
 
                 self.canvas.create_rectangle(
-                    x1,
-                    y1,
-                    x2,
-                    y2,
+                    x1, y1, x2, y2,
                     fill=color,
                     outline=self.square_outline_color,
                     width=1,
@@ -133,26 +122,22 @@ class ChessBoardWidget(tk.Frame):
 
         font_size = max(8, self.square_size // 8)
 
-        # File letters (bottom)
         for i, file_letter in enumerate(files):
             x = start_x + i * self.square_size + self.square_size // 2
             y = start_y + self.board_size + 15
             self.canvas.create_text(
-                x,
-                y,
+                x, y,
                 text=file_letter,
                 fill=self.coordinate_color,
                 font=("Arial", font_size, "bold"),
                 tags="coordinates",
             )
 
-        # Rank numbers (left side)
         for i, rank_number in enumerate(ranks):
             x = start_x - 15
             y = start_y + i * self.square_size + self.square_size // 2
             self.canvas.create_text(
-                x,
-                y,
+                x, y,
                 text=rank_number,
                 fill=self.coordinate_color,
                 font=("Arial", font_size, "bold"),
@@ -186,7 +171,6 @@ class ChessBoardWidget(tk.Frame):
                 file_idx = chess.square_file(square)
                 rank_idx = chess.square_rank(square)
 
-                # Adjust for board orientation
                 if self.orientation == "white":
                     x = start_x + file_idx * self.square_size + self.square_size // 2
                     y = (
@@ -202,16 +186,12 @@ class ChessBoardWidget(tk.Frame):
                     )
                     y = start_y + rank_idx * self.square_size + self.square_size // 2
 
-                # Select piece symbol (white pieces = True, black pieces = False)
                 symbol = piece_symbols[piece.piece_type][1 if piece.color else 0]
 
                 self.canvas.create_text(
-                    x,
-                    y,
+                    x, y,
                     text=symbol,
-                    fill=(
-                        "#F5F5F5" if piece.color else "#1A1A1A"
-                    ),  # Slightly off-white and off-black for better contrast
+                    fill="#F5F5F5" if piece.color else "#1A1A1A",
                     font=("Arial", font_size, "bold"),
                     tags="pieces",
                 )
@@ -235,13 +215,9 @@ class ChessBoardWidget(tk.Frame):
         from_x, from_y = self._square_to_canvas_coords(from_square, start_x, start_y)
         to_x, to_y = self._square_to_canvas_coords(to_square, start_x, start_y)
 
-        # Draw arrow line
         arrow_width = max(2, self.square_size // 20)
         self.canvas.create_line(
-            from_x,
-            from_y,
-            to_x,
-            to_y,
+            from_x, from_y, to_x, to_y,
             fill=self.suggestion_color,
             width=arrow_width,
             arrow=tk.LAST,
@@ -249,7 +225,6 @@ class ChessBoardWidget(tk.Frame):
             tags="suggestion",
         )
 
-        # Draw source circle
         circle_radius = max(4, self.square_size // 15)
         self.canvas.create_oval(
             from_x - circle_radius,
@@ -282,7 +257,7 @@ class ChessBoardWidget(tk.Frame):
         else:
             square = chess.square(7 - file, rank)
 
-        return square == move.from_square or square == move.to_square
+        return square in (move.from_square, move.to_square)
 
     def update_position(
         self, board: chess.Board, last_move: Optional[chess.Move] = None

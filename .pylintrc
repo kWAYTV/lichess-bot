@@ -1,0 +1,33 @@
+[MAIN]
+py-version = 3.10
+
+[MESSAGES CONTROL]
+disable =
+    R0902,
+    R0903,
+    R0913,
+    R0917,
+    R0915,
+    R0912,
+    R0911,
+    R0801,
+    W0718,
+    W0212,
+    C0415,
+
+[FORMAT]
+max-line-length = 100
+
+[DESIGN]
+max-args = 10
+max-attributes = 25
+max-bool-expr = 5
+max-branches = 15
+max-locals = 20
+max-returns = 10
+max-statements = 60
+
+[SIMILARITIES]
+min-similarity-lines = 10
+ignore-imports = yes
+ignore-signatures = yes

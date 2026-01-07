@@ -11,7 +11,7 @@ class GameState:
     """Holds current game state"""
 
     board: chess.Board = field(default_factory=chess.Board)
-    our_color: str = "W"  # "W" or "B"
+    our_color: str = "W"
     active: bool = False
     result_logged: bool = False
     waiting_for_ack: bool = False
@@ -37,4 +37,3 @@ class GameState:
     def our_color_name(self) -> str:
         """Get color as full word"""
         return "white" if self.our_color == "W" else "black"
-

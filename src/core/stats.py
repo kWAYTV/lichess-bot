@@ -5,7 +5,6 @@ import os
 from datetime import datetime
 from typing import Dict, List, Optional
 
-import chess
 from loguru import logger
 
 
@@ -17,7 +16,7 @@ class GameStats:
         self.start_time: datetime = datetime.now()
         self.end_time: Optional[datetime] = None
         self.our_color: Optional[str] = None
-        self.result: Optional[str] = None  # "win", "loss", "draw"
+        self.result: Optional[str] = None
         self.score: Optional[str] = None
         self.reason: Optional[str] = None
         self.total_moves: int = 0
@@ -34,7 +33,6 @@ class GameStats:
         self.reason = reason
         self.total_moves = total_moves
 
-        # Calculate evaluation statistics
         if self.engine_evaluations:
             scores = []
             for eval_data in self.engine_evaluations:
@@ -108,8 +106,9 @@ class StatisticsManager:
         self.current_game.game_id = game_id or f"game_{int(datetime.now().timestamp())}"
         self.current_game.our_color = our_color
 
-
-    def end_current_game(self, result: str, score: str, reason: str, total_moves: int) -> None:
+    def end_current_game(
+        self, result: str, score: str, reason: str, total_moves: int
+    ) -> None:
         """End the current game and save statistics"""
         if not self.current_game:
             return
@@ -143,12 +142,13 @@ class StatisticsManager:
 
         win_rate = (wins / total_games * 100) if total_games > 0 else 0
 
-        # Calculate average game length
         game_lengths = [g.total_moves for g in self.all_games if g.total_moves > 0]
         avg_game_length = sum(game_lengths) / len(game_lengths) if game_lengths else 0
 
-        # Calculate average evaluation
-        evaluations = [g.average_evaluation for g in self.all_games if g.average_evaluation is not None]
+        evaluations = [
+            g.average_evaluation for g in self.all_games
+            if g.average_evaluation is not None
+        ]
         avg_evaluation = sum(evaluations) / len(evaluations) if evaluations else None
 
         return {
@@ -175,7 +175,6 @@ class StatisticsManager:
             return None
 
         if result_type == "win":
-            # Best win = highest evaluation
             games_with_eval = [g for g in games if g.average_evaluation is not None]
             if games_with_eval:
                 best = max(games_with_eval, key=lambda g: g.average_evaluation)
@@ -185,7 +184,6 @@ class StatisticsManager:
                     "date": best.start_time.isoformat(),
                 }
         elif result_type == "loss":
-            # Worst loss = lowest evaluation
             games_with_eval = [g for g in games if g.average_evaluation is not None]
             if games_with_eval:
                 worst = min(games_with_eval, key=lambda g: g.average_evaluation)
@@ -219,7 +217,7 @@ class StatisticsManager:
                 "last_updated": datetime.now().isoformat(),
             }
 
-            with open(self.stats_file, "w") as f:
+            with open(self.stats_file, "w", encoding="utf-8") as f:
                 json.dump(stats_data, f, indent=2)
 
         except Exception as e:
@@ -231,10 +229,9 @@ class StatisticsManager:
             return
 
         try:
-            with open(self.stats_file, "r") as f:
+            with open(self.stats_file, "r", encoding="utf-8") as f:
                 stats_data = json.load(f)
 
-            # Reconstruct GameStats objects
             self.all_games = []
             for game_data in stats_data.get("games", []):
                 game = GameStats()
@@ -263,19 +260,18 @@ class StatisticsManager:
             with open(filename, "w", encoding="utf-8") as f:
                 for game_stats in self.all_games:
                     if game_stats.end_time and game_stats.result:
-                        # Create basic PGN headers
-                        f.write(f'[Event "Lichess Game"]\n')
-                        f.write(f'[Date "{game_stats.start_time.strftime("%Y.%m.%d")}"]\n')
-                        f.write(f'[White "{game_stats.our_color or "Unknown"}"]\n')
-                        f.write(f'[Black "Opponent"]\n')
-                        f.write(f'[Result "{game_stats.score or "*"}"]\n')
+                        f.write('[Event "Lichess Game"]\n')
+                        date_str = game_stats.start_time.strftime("%Y.%m.%d")
+                        f.write(f'[Date "{date_str}"]\n')
+                        color = game_stats.our_color or "Unknown"
+                        f.write(f'[White "{color}"]\n')
+                        f.write('[Black "Opponent"]\n')
+                        result_str = game_stats.score or "*"
+                        f.write(f'[Result "{result_str}"]\n')
                         f.write(f'[PlyCount "{game_stats.total_moves * 2}"]\n')
                         f.write(f'[GameId "{game_stats.game_id}"]\n')
                         f.write('\n')
-
-                        # Note: Full move reconstruction would require storing the actual moves
-                        # For now, just write the basic structure
-                        f.write(f'{game_stats.score or "*"}')
+                        f.write(f'{result_str}')
                         f.write('\n\n')
 
             return True
