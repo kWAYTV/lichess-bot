@@ -103,3 +103,22 @@ def apply_preset(config_manager, preset_name: str) -> bool:
     config_manager.save()
     return True
 
+
+def detect_preset_from_time(initial_seconds: int) -> str:
+    """Detect which preset to use based on initial clock time in seconds"""
+    if initial_seconds <= 120:  # 2 min or less
+        return "bullet"
+    elif initial_seconds <= 300:  # 5 min or less
+        return "blitz"
+    elif initial_seconds <= 900:  # 15 min or less
+        return "rapid"
+    else:  # 15+ min
+        return "classical"
+
+
+def auto_apply_preset(config_manager, initial_seconds: int) -> str:
+    """Detect and apply the appropriate preset based on clock time"""
+    preset_name = detect_preset_from_time(initial_seconds)
+    apply_preset(config_manager, preset_name)
+    return preset_name
+

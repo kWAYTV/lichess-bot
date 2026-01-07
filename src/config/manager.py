@@ -51,6 +51,7 @@ class ConfigManager:
             "move-key": "end",
             "arrow": "true",
             "auto-play": "true",
+            "auto-preset": "true",
             "log-level": "INFO",
             "gui-enabled": "true",
         }
@@ -117,6 +118,10 @@ class ConfigManager:
     @property
     def is_autoplay_enabled(self) -> bool:
         return self.get("general", "auto-play", "false").lower() == "true"
+
+    @property
+    def is_auto_preset_enabled(self) -> bool:
+        return self.get("general", "auto-preset", "true").lower() == "true"
 
     @property
     def move_key(self) -> str:

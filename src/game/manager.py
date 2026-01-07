@@ -6,7 +6,7 @@ from typing import Callable, Optional
 from loguru import logger
 
 from ..auth.lichess import LichessAuth
-from ..config import ConfigManager
+from ..config import ConfigManager, auto_apply_preset
 from ..core.board import BoardHandler
 from ..core.browser import BrowserManager
 from ..core.engine import ChessEngine
@@ -111,6 +111,9 @@ class GameManager:
         if not self._wait_for_game_ready():
             return
 
+        # Auto-detect preset from clock time
+        self._apply_auto_preset()
+
         self._determine_color()
         self.stats.start_new_game(our_color=self.state.our_color_name)
         self._notify_gui({
@@ -148,6 +151,24 @@ class GameManager:
                     if not self.recovery.attempt_browser_recovery():
                         return False
                 sleep(poll_interval)
+
+    def _apply_auto_preset(self) -> None:
+        """Auto-detect and apply preset based on clock time"""
+        if not self.config.is_auto_preset_enabled:
+            return
+
+        try:
+            initial_time = self.board_handler.get_our_clock_seconds()
+            if initial_time:
+                preset_name = auto_apply_preset(self.config, initial_time)
+                logger.info(f"⚡ Auto-preset: {preset_name.capitalize()} ({initial_time}s clock)")
+                self._notify_gui({
+                    "type": "preset_applied",
+                    "preset": preset_name,
+                    "initial_time": initial_time,
+                })
+        except Exception as e:
+            logger.debug(f"Auto-preset failed: {e}")
 
     def _determine_color(self) -> None:
         """Determine player color"""
