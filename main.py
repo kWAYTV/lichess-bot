@@ -57,7 +57,7 @@ def main():
                 logger.error(f"Cleanup error: {e}")
                 try:
                     if game_manager.browser_manager and game_manager.browser_manager.driver:
-                        game_manager.browser_manager.driver.quit()
+                            game_manager.browser_manager.driver.quit()
                 except:
                     pass
 

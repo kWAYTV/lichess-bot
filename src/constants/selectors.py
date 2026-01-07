@@ -53,6 +53,11 @@ class Selectors:
     # URL patterns to exclude (not a game)
     NON_GAME_URL_PATTERNS = ["/tournament", "/study", "/training"]
 
+    # Clocks
+    CLOCK_ENEMY = (By.XPATH, "/html/body/div[2]/main/div[1]/div[7]")
+    CLOCK_OUR = (By.XPATH, "/html/body/div[2]/main/div[1]/div[10]/input")
+    CLOCK_CSS_BOTTOM = (By.CSS_SELECTOR, "div.rclock.rclock-bottom")
+
     @classmethod
     def get_move_xpaths(cls, move_number: int) -> list:
         """Get all XPath variants for a move number"""

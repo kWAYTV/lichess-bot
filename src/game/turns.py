@@ -109,14 +109,16 @@ class TurnHandler:
 
     def _get_engine_move(self, state: GameState, move_number: int) -> chess.Move:
         """Get best move from engine"""
-        depth = self.config.get("engine", "depth", 5)
+        base_depth = int(self.config.get("engine", "depth", 5))
+        depth = self._adjust_depth_for_time(base_depth)
+        
         advanced_humanized_delay("engine thinking", self.config, "thinking")
 
-        result = self.engine.get_best_move(state.board)
+        result = self.engine.get_best_move(state.board, depth=depth)
         move = result.move
         src, dst = str(move)[:2], str(move)[2:]
 
-        logger.info(f"Engine suggests: {move} ({src} → {dst})")
+        logger.info(f"Engine suggests: {move} ({src} → {dst}) [depth={depth}]")
 
         # Track evaluation
         eval_data = {
@@ -199,4 +201,29 @@ class TurnHandler:
         })
 
         return move_number + 1
+
+    def _adjust_depth_for_time(self, base_depth: int) -> int:
+        """Adjust engine depth based on remaining time"""
+        try:
+            our_time = self.board_handler.get_our_clock_seconds()
+            if our_time is None:
+                return base_depth
+
+            # Time-based depth scaling
+            if our_time < 10:
+                depth = min(base_depth, 2)
+                logger.warning(f"⚡ Critical time ({our_time}s) - depth={depth}")
+            elif our_time < 30:
+                depth = min(base_depth, 4)
+                logger.info(f"⏰ Low time ({our_time}s) - depth={depth}")
+            elif our_time < 60:
+                depth = max(base_depth - 2, 3)
+                logger.debug(f"Time pressure ({our_time}s) - depth={depth}")
+            else:
+                depth = base_depth
+
+            return depth
+        except Exception as e:
+            logger.debug(f"Time check failed: {e}")
+            return base_depth
 
