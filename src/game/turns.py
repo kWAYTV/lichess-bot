@@ -3,7 +3,7 @@
 from typing import Callable
 
 import chess
-from loguru import logger
+from ..utils.logging import logger
 
 from ..config import ConfigManager
 from ..core.board import BoardHandler

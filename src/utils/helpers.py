@@ -6,7 +6,7 @@ import random
 import sys
 from time import sleep
 
-from loguru import logger
+from .logging import logger
 
 
 def get_geckodriver_path() -> str:

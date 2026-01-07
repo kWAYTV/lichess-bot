@@ -2,7 +2,7 @@
 
 import time
 
-from loguru import logger
+from ..utils.logging import logger
 
 from ..config import ConfigManager
 from ..core.browser import BrowserManager

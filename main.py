@@ -3,13 +3,11 @@
 import signal
 import sys
 
-from loguru import logger
-
 from src.config import ConfigManager
 from src.game import GameManager
 from src.gui.main_window import ChessBotGUI
 from src.utils.helpers import clear_screen, signal_handler
-from src.utils.logging import GUILogHandler
+from src.utils.logging import GUILogHandler, logger, setup_logging
 
 
 def main():
@@ -23,14 +21,7 @@ def main():
         config = ConfigManager()
         gui_handler = GUILogHandler()
 
-        logger.remove()
-        log_level = config.log_level or "INFO"
-        logger.add(sys.stderr, level=log_level)
-
-        try:
-            logger.add(gui_handler.write, level=log_level, colorize=False)
-        except Exception as e:
-            logger.warning(f"Could not set up GUI logging: {e}")
+        setup_logging(config.log_level, gui_handler)
 
         game_manager = GameManager()
         gui = ChessBotGUI(game_manager)

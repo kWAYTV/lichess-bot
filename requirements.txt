@@ -1,5 +1,4 @@
 selenium
-loguru
 configparser
 chess
 pyinstaller

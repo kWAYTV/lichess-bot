@@ -4,7 +4,7 @@ import json
 import os
 from typing import Optional
 
-from loguru import logger
+from ..utils.logging import logger
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By

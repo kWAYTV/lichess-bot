@@ -2,7 +2,7 @@
 
 from typing import Callable
 
-from loguru import logger
+from ..utils.logging import logger
 
 from ..constants import Selectors
 from ..core.browser import BrowserManager

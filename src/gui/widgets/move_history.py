@@ -5,7 +5,7 @@ from tkinter import ttk
 from typing import List
 
 import chess
-from loguru import logger
+from ...utils.logging import logger
 
 
 class MoveHistoryWidget(tk.Frame):

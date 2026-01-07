@@ -6,7 +6,7 @@ from time import sleep
 from typing import List, Optional
 
 import chess
-from loguru import logger
+from ..utils.logging import logger
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec

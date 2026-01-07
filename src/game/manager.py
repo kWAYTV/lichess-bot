@@ -3,7 +3,7 @@
 from time import sleep
 from typing import Callable, Optional
 
-from loguru import logger
+from ..utils.logging import logger
 
 from ..auth.lichess import LichessAuth
 from ..config import ConfigManager, auto_apply_preset

@@ -6,7 +6,7 @@ import time
 from typing import Optional
 
 import chess
-from loguru import logger
+from .logging import logger
 from selenium.webdriver.common.by import By
 
 

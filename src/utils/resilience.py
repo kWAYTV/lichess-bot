@@ -5,7 +5,7 @@ import time
 from enum import Enum
 from typing import Any, Callable, Optional, Type, Union
 
-from loguru import logger
+from .logging import logger
 from selenium.common.exceptions import (
     ElementNotInteractableException,
     NoSuchElementException,

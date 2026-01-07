@@ -7,7 +7,7 @@ from tkinter import ttk
 from typing import Optional
 
 import chess
-from loguru import logger
+from ..utils.logging import logger
 from PIL import Image
 import pystray
 

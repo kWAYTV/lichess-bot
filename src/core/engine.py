@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import chess
 import chess.engine
-from loguru import logger
+from ..utils.logging import logger
 
 from ..config import ConfigManager
 from ..utils.resilience import retry_on_exception, safe_execute

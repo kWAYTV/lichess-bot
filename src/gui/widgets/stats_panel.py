@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Dict, List, Optional
 
-from loguru import logger
+from ...utils.logging import logger
 
 
 class StatisticsPanelWidget(tk.Frame):

@@ -3,7 +3,7 @@
 import tkinter as tk
 from typing import Callable, Optional
 
-from loguru import logger
+from ...utils.logging import logger
 
 from ...config.presets import get_all_presets, apply_preset
 
