@@ -44,9 +44,10 @@ jobs:
           Move-Item sf_temp\stockfish\stockfish-windows-x86-64-avx2.exe release\deps\stockfish\stockfish.exe
           
           # GeckoDriver (latest)
+          mkdir release\deps\geckodriver
           $gd = (Invoke-RestMethod "https://api.github.com/repos/mozilla/geckodriver/releases/latest").tag_name
           Invoke-WebRequest -Uri "https://github.com/mozilla/geckodriver/releases/download/$gd/geckodriver-$gd-win64.zip" -OutFile gd.zip
-          Expand-Archive gd.zip -DestinationPath release\deps
+          Expand-Archive gd.zip -DestinationPath release\deps\geckodriver
           
           # xPath Finder extension
           Invoke-WebRequest -Uri "https://addons.mozilla.org/firefox/downloads/file/4107538/xpath_finder-1.0.3.xpi" -OutFile release\deps\xpath_finder.xpi
