@@ -33,9 +33,7 @@ class ConfigManager:
         """Load existing config or create default"""
         if os.path.isfile(self._config_path):
             self.config.read(self._config_path)
-            logger.debug("Loaded config.ini")
         else:
-            logger.debug("Creating default config.ini")
             self._create_default_config()
             self.config.read(self._config_path)
 
@@ -75,7 +73,6 @@ class ConfigManager:
         try:
             return self.config[section].get(key, fallback)
         except KeyError:
-            logger.warning(f"Section '{section}' not found")
             return fallback
 
     def get_section(self, section: str) -> Dict[str, str]:
@@ -83,7 +80,6 @@ class ConfigManager:
         try:
             return dict(self.config[section])
         except KeyError:
-            logger.warning(f"Section '{section}' not found")
             return {}
 
     def set(self, section: str, key: str, value: str) -> None:
@@ -139,7 +135,6 @@ class ConfigManager:
     def log_level(self) -> str:
         level = self.get("general", "log-level", "INFO").upper()
         if level not in self.VALID_LOG_LEVELS:
-            logger.warning(f"Invalid log level '{level}', using INFO")
             return "INFO"
         return level
 

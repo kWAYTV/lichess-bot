@@ -58,7 +58,6 @@ class TurnHandler:
         if not move_text:
             return move_number
 
-        logger.info(f"Opponent move detected at position {move_number}")
 
         if not self.board_handler.validate_and_push_move(
             state.board, move_text, move_number, False
@@ -113,10 +112,8 @@ class TurnHandler:
             time = self.board_handler.get_our_clock_seconds()
             if time is None:
                 return 999
-            logger.debug(f"⏱️ Our clock: {time}s")
             return time
         except Exception as e:
-            logger.warning(f"Clock read failed: {e}")
             return 999
 
     def _get_engine_move(self, state: GameState, move_number: int) -> chess.Move:
@@ -131,7 +128,7 @@ class TurnHandler:
         move = result.move
         src, dst = str(move)[:2], str(move)[2:]
 
-        logger.info(f"Engine suggests: {move} ({src} → {dst}) [depth={depth}]")
+        logger.info(f"Suggest: {move} [d={depth}]")
 
         # Track evaluation
         eval_data = {
@@ -156,7 +153,6 @@ class TurnHandler:
     ) -> int:
         """Execute move automatically"""
         remaining = self._get_remaining_time()
-        logger.debug(f"Auto-executing: {move}")
 
         # Skip arrow display if time is critical
         if self.config.show_arrow and remaining > 30:
@@ -193,12 +189,12 @@ class TurnHandler:
         # Check for key press
         if not self.keyboard.should_make_move():
             src, dst = str(move)[:2], str(move)[2:]
-            logger.info(f"Suggest: {move} ({src} → {dst}) - press {self.config.move_key}")
+            logger.info(f"Suggest: {move} - press {self.config.move_key}")
             sleep(0.1)
             return move_number
 
         # Execute on keypress
-        logger.info(f"Manual key press - executing: {move}")
+        logger.info(f"Executing: {move}")
         remaining = self._get_remaining_time()
         self.board_handler.execute_move(move, move_number, remaining)
         self.keyboard.reset_move_state()
@@ -228,18 +224,15 @@ class TurnHandler:
             # Time-based depth scaling
             if our_time < 10:
                 depth = min(base_depth, 2)
-                logger.warning(f"⚡ Critical time ({our_time}s) - depth={depth}")
+                logger.warning(f"Critical time {our_time}s, depth={depth}")
             elif our_time < 30:
                 depth = min(base_depth, 4)
-                logger.info(f"⏰ Low time ({our_time}s) - depth={depth}")
             elif our_time < 60:
                 depth = max(base_depth - 2, 3)
-                logger.debug(f"Time pressure ({our_time}s) - depth={depth}")
             else:
                 depth = base_depth
 
             return depth
         except Exception as e:
-            logger.debug(f"Time check failed: {e}")
             return base_depth
 

@@ -35,7 +35,7 @@ class ResultHandler:
             reason_el = driver.find_element(*Selectors.RESULT_REASON)
             reason = reason_el.text if reason_el else "Unknown"
 
-            logger.success(f"GAME FINISHED - {score} | {reason}")
+            logger.success(f"Game finished: {score} - {reason}")
 
             move_count = len(state.board.move_stack)
             result = self._determine_result(score, state.our_color_name)
@@ -61,8 +61,7 @@ class ResultHandler:
             self.notify_gui({"type": "statistics_update", "stats": overall})
 
         except Exception as e:
-            logger.debug(f"Could not extract result: {e}")
-            logger.info("GAME FINISHED - Result details unavailable")
+            logger.info("Game finished")
 
             self.notify_gui({
                 "type": "game_finished",

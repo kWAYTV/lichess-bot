@@ -38,7 +38,6 @@ class CircuitBreaker:
         if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
                 self.state = CircuitState.HALF_OPEN
-                logger.debug("Circuit breaker: Attempting reset (HALF_OPEN)")
             else:
                 raise Exception("Circuit breaker is OPEN - too many failures")
 
@@ -59,7 +58,6 @@ class CircuitBreaker:
     def _on_success(self) -> None:
         """Handle successful call"""
         if self.state == CircuitState.HALF_OPEN:
-            logger.success("Circuit breaker: Reset successful (CLOSED)")
             self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.last_failure_time = None
@@ -71,9 +69,7 @@ class CircuitBreaker:
 
         if self.failure_count >= self.failure_threshold:
             if self.state != CircuitState.OPEN:
-                logger.warning(
-                    f"Circuit breaker: Opening due to {self.failure_count} failures"
-                )
+                logger.warning(f"Circuit breaker open: {self.failure_count} failures")
                 self.state = CircuitState.OPEN
 
 
@@ -132,7 +128,6 @@ def retry_on_exception(
 
                         # Try fallback if available
                         if fallback_func:
-                            logger.info(f"Attempting fallback for {func.__name__}")
                             try:
                                 return fallback_func(*args, **kwargs)
                             except Exception as fallback_error:
@@ -215,23 +210,17 @@ class BrowserRecoveryManager:
             _ = self.browser_manager.driver.current_url
             return True
         except Exception as e:
-            logger.warning(f"Browser health check failed: {e}")
             return False
 
     def can_attempt_recovery(self) -> bool:
         """Check if we can attempt browser recovery"""
         if self.recovery_attempts >= self.max_recovery_attempts:
-            logger.error(
-                f"Max recovery attempts ({self.max_recovery_attempts}) exceeded"
-            )
+            logger.error("Max recovery attempts exceeded")
             return False
 
         if self.last_recovery_time:
             time_since_last = time.time() - self.last_recovery_time
             if time_since_last < self.recovery_cooldown:
-                logger.warning(
-                    f"Recovery cooldown active ({time_since_last:.0f}s/{self.recovery_cooldown}s)"
-                )
                 return False
 
         return True
@@ -241,7 +230,7 @@ class BrowserRecoveryManager:
         if not self.can_attempt_recovery():
             return False
 
-        logger.warning("Attempting browser recovery...")
+        logger.warning("Browser recovery")
         self.recovery_attempts += 1
         self.last_recovery_time = time.time()
 
@@ -259,10 +248,10 @@ class BrowserRecoveryManager:
 
             # Basic health check
             if self.is_browser_healthy():
-                logger.success("Browser recovery successful")
+                logger.success("Browser recovered")
                 return True
             else:
-                logger.error("Browser recovery failed - health check failed")
+                logger.error("Recovery failed")
                 return False
 
         except Exception as e:
@@ -272,7 +261,6 @@ class BrowserRecoveryManager:
     def reset_recovery_state(self) -> None:
         """Reset recovery state after successful operation"""
         if self.recovery_attempts > 0:
-            logger.debug("Resetting browser recovery state")
             self.recovery_attempts = 0
             self.last_recovery_time = None
 
@@ -291,16 +279,12 @@ def with_browser_recovery(recovery_manager: BrowserRecoveryManager) -> Callable:
                 logger.warning(f"Browser operation failed: {e}")
 
                 if recovery_manager.attempt_browser_recovery():
-                    logger.info("Retrying operation after browser recovery")
                     try:
                         return func(*args, **kwargs)
                     except Exception as retry_error:
-                        logger.error(
-                            f"Operation failed even after recovery: {retry_error}"
-                        )
+                        logger.error(f"Operation failed after recovery: {retry_error}")
                         raise retry_error
                 else:
-                    logger.error("Browser recovery failed, propagating original error")
                     raise e
 
         return wrapper
@@ -325,34 +309,28 @@ def validate_game_state(board, move_number: int, expected_moves: int = None) -> 
     try:
         # Basic board state validation
         if not board:
-            logger.warning("Board state is None")
             return False
 
         # Check if board is in valid state
         if board.is_game_over():
-            logger.debug("Game is over according to board state")
             return True
 
         # Check move number consistency
         actual_moves = len(board.move_stack)
         if expected_moves and abs(actual_moves - expected_moves) > 1:
-            logger.warning(
-                f"Move count mismatch: expected {expected_moves}, got {actual_moves}"
-            )
+            logger.warning(f"Move count mismatch: {expected_moves} vs {actual_moves}")
             return False
 
         # Check for illegal positions
         if board.is_check() and board.is_checkmate():
-            logger.debug("Valid checkmate position")
             return True
 
         if board.is_stalemate():
-            logger.debug("Valid stalemate position")
             return True
 
         # Check if we have legal moves
         if not list(board.legal_moves):
-            logger.warning("No legal moves available but game not over")
+            logger.warning("No legal moves")
             return False
 
         return True

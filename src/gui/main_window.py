@@ -305,7 +305,6 @@ class ChessBotGUI:
             # Run tray icon in background thread
             threading.Thread(target=self.tray_icon.run, daemon=True).start()
         except Exception as e:
-            logger.warning(f"Failed to setup tray icon: {e}")
             self.tray_icon = None
 
     def _minimize_to_tray(self):

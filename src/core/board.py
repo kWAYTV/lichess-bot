@@ -44,13 +44,11 @@ class BoardHandler:
             WebDriverWait(self.driver, 30).until(
                 ec.presence_of_element_located(Selectors.GAME_BOARD_CONTAINER)
             )
-            logger.debug("Game board found")
 
             # Wait for move input
             if not self._wait_for_move_input():
                 return False
 
-            logger.debug("Game interface ready")
             return True
 
         except Exception as e:
@@ -87,7 +85,6 @@ class BoardHandler:
                 WebDriverWait(self.driver, 10).until(
                     ec.presence_of_element_located((selector_type, selector_value))
                 )
-                logger.debug(f"Move input found: {selector_value}")
                 return True
             except:
                 continue
@@ -101,7 +98,7 @@ class BoardHandler:
             Selectors.ORIENTATION_WHITE
         )
         color = "W" if is_white else "B"
-        logger.info(f"Playing as {'WHITE' if is_white else 'BLACK'}")
+        logger.info(f"Playing as {'white' if is_white else 'black'}")
         return color
 
     @element_retry(max_retries=3, delay=1.0)
@@ -113,7 +110,6 @@ class BoardHandler:
                     ec.presence_of_element_located((selector_type, selector_value))
                 )
                 element = self.driver.find_element(selector_type, selector_value)
-                logger.debug(f"Move input handle found: {selector_value}")
                 return element
             except:
                 continue
@@ -141,7 +137,6 @@ class BoardHandler:
             try:
                 element = self.driver.find_element(By.XPATH, xpath)
                 if element.text.strip():
-                    logger.debug(f"Found move {move_number} via XPath")
                     return element
             except:
                 continue
@@ -150,12 +145,10 @@ class BoardHandler:
 
     def get_previous_moves(self, board: chess.Board) -> int:
         """Get all previous moves and update board, return current move number"""
-        logger.debug("Getting previous moves from board")
         move_number = 1
 
         # Check if any moves exist
         if not self.find_move_by_alternatives(1):
-            logger.debug("No moves found - start of game")
             return 1
 
         while move_number < 999:
@@ -170,14 +163,12 @@ class BoardHandler:
 
             try:
                 board.push_san(move_text)
-                logger.debug(f"Previous move {move_number}: {move_text}")
                 move_number += 1
             except Exception as e:
                 logger.error(f"Invalid move '{move_text}': {e}")
                 self.debug_utils.save_debug_info(self.driver, move_number, board)
                 break
 
-        logger.debug(f"Total moves processed: {move_number - 1}")
         return move_number
 
     def check_for_move(self, move_number: int) -> Optional[str]:
@@ -217,7 +208,6 @@ class BoardHandler:
     @move_retry(max_retries=3, delay=1.0)
     def execute_move(self, move: chess.Move, move_number: int, remaining_time: int = None) -> None:
         """Execute a move through the interface"""
-        logger.debug(f"Executing move: {move}")
 
         # Humanized delay (time-aware)
         if self.config_manager:
@@ -258,10 +248,9 @@ class BoardHandler:
         except Exception as e:
             error_msg = str(e).lower()
             if "not reachable" in error_msg or "not interactable" in error_msg or "scroll" in error_msg:
-                logger.error("⚠️ INPUT BOX HIDDEN - Make browser window wider!")
+                logger.error("Input box hidden - widen browser window")
                 self._show_input_hidden_warning()
             
-            logger.warning(f"Direct input failed, using JavaScript fallback")
             # JavaScript fallback - submit via form
             try:
                 self.browser_manager.execute_script(
@@ -312,7 +301,6 @@ class BoardHandler:
         """Draw an arrow showing the suggested move"""
         move_str = str(move)
         src, dst = move_str[:2], move_str[2:]
-        logger.debug(f"Drawing arrow: {src} → {dst}")
 
         transform = self._get_piece_transform(move, our_color)
 
@@ -421,7 +409,6 @@ class BoardHandler:
                 if clock_text:
                     clock_text = clock_text.strip()
                     seconds = self._parse_clock_time(clock_text)
-                    logger.debug(f"Clock raw='{clock_text}' parsed={seconds}s")
                     return seconds
             except:
                 pass
@@ -434,14 +421,12 @@ class BoardHandler:
                 clock_text = clock_text.replace('\n', '')
                 if clock_text:
                     seconds = self._parse_clock_time(clock_text)
-                    logger.debug(f"Clock (fallback) raw='{clock_text}' parsed={seconds}s")
                     return seconds
             except:
                 pass
             
             return None
         except Exception as e:
-            logger.debug(f"Could not read clock: {e}")
             return None
 
     def _parse_clock_time(self, time_str: str) -> Optional[int]:

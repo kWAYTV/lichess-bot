@@ -102,25 +102,21 @@ class StatisticsManager:
     def start_new_game(self, game_id: str = None, our_color: str = None) -> None:
         """Start tracking a new game"""
         if self.current_game:
-            logger.warning("Starting new game while previous game is still active")
             self.end_current_game("abandoned", "Game abandoned", "New game started", 0)
 
         self.current_game = GameStats()
         self.current_game.game_id = game_id or f"game_{int(datetime.now().timestamp())}"
         self.current_game.our_color = our_color
 
-        logger.debug(f"Started tracking game: {self.current_game.game_id}")
 
     def end_current_game(self, result: str, score: str, reason: str, total_moves: int) -> None:
         """End the current game and save statistics"""
         if not self.current_game:
-            logger.warning("Attempting to end game when no game is active")
             return
 
         self.current_game.complete_game(result, score, reason, total_moves)
         self.all_games.append(self.current_game)
 
-        logger.info(f"Game completed: {result} ({score}) - {total_moves} moves")
         self.save_stats()
         self.current_game = None
 
@@ -226,14 +222,12 @@ class StatisticsManager:
             with open(self.stats_file, "w") as f:
                 json.dump(stats_data, f, indent=2)
 
-            logger.debug(f"Saved statistics for {len(self.all_games)} games")
         except Exception as e:
             logger.error(f"Failed to save statistics: {e}")
 
     def load_stats(self) -> None:
         """Load statistics from file"""
         if not os.path.exists(self.stats_file):
-            logger.debug("No existing statistics file found")
             return
 
         try:
@@ -259,7 +253,6 @@ class StatisticsManager:
 
                 self.all_games.append(game)
 
-            logger.debug(f"Loaded statistics for {len(self.all_games)} games")
         except Exception as e:
             logger.error(f"Failed to load statistics: {e}")
             self.all_games = []
@@ -285,7 +278,6 @@ class StatisticsManager:
                         f.write(f'{game_stats.score or "*"}')
                         f.write('\n\n')
 
-            logger.info(f"Exported {len(self.all_games)} games to {filename}")
             return True
 
         except Exception as e:
@@ -299,8 +291,6 @@ class StatisticsManager:
         if os.path.exists(self.stats_file):
             try:
                 os.remove(self.stats_file)
-                logger.info("Statistics cleared")
             except Exception as e:
                 logger.error(f"Failed to delete statistics file: {e}")
         else:
-            logger.info("Statistics cleared (no file to delete)")
