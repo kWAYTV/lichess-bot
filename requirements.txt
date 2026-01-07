@@ -4,3 +4,5 @@ configparser
 chess
 pynput
 pyinstaller
+pystray
+pillow
