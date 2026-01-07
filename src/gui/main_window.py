@@ -8,6 +8,7 @@ from typing import Optional
 import chess
 from loguru import logger
 
+from .widgets.chess_board import ChessBoardWidget
 from .widgets.log_panel import LogPanelWidget
 from .widgets.move_history import MoveHistoryWidget
 from .widgets.result_popup import show_game_result
@@ -25,6 +26,7 @@ class ChessBotGUI:
 
         self.current_board = chess.Board()
         self.our_color = "white"
+        self.current_suggestion = None
         self.is_running = False
 
     def _create_main_window(self):
@@ -126,6 +128,14 @@ class ChessBotGUI:
         self.stats_panel.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(stats_frame, text="Stats")
 
+        # Board tab
+        board_frame = tk.Frame(self.notebook, bg="#1a1a1a")
+        board_frame.grid_columnconfigure(0, weight=1)
+        board_frame.grid_rowconfigure(0, weight=1)
+        self.chess_board = ChessBoardWidget(board_frame)
+        self.chess_board.grid(row=0, column=0, sticky="nsew")
+        self.notebook.add(board_frame, text="Board")
+
         # Footer
         footer = tk.Frame(self.root, bg="#1a1a1a", height=24)
         footer.grid(row=2, column=0, sticky="ew", padx=8, pady=(4, 8))
@@ -180,16 +190,31 @@ class ChessBotGUI:
         try:
             t = update_data.get("type")
 
-            if t == "suggestion":
+            if t == "board_update":
+                board = update_data.get("board")
+                last_move = update_data.get("last_move")
+                if board:
+                    self.current_board = board.copy()
+                    self.chess_board.update_position(board, last_move)
+                    if last_move:
+                        self.chess_board.clear_suggestion()
+                        self.current_suggestion = None
+
+            elif t == "suggestion":
                 move = update_data.get("move")
                 if move:
                     self.suggestion_label.configure(text=str(move).upper())
+                    self.current_suggestion = move
+                    self.chess_board.show_suggestion(move)
 
             elif t == "game_info":
                 if update_data.get("game_active"):
                     self.status_label.configure(fg="#00DD88")
                     color = update_data.get("our_color", "")
                     self.footer_label.configure(text=f"Playing as {color}")
+                    if color:
+                        self.our_color = color
+                        self.chess_board.set_orientation(color)
                 else:
                     self.status_label.configure(fg="#888888")
 

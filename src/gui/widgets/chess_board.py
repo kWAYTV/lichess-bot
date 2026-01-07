@@ -12,8 +12,8 @@ class ChessBoardWidget(tk.Frame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg="#2B2B2B", **kwargs)
 
-        # Board configuration - larger for the new spacious layout
-        self.base_size = 550  # Larger base board size
+        # Board configuration - compact for overlay
+        self.base_size = 280  # Compact board size
         self.orientation = "white"  # "white" or "black"
 
         self.light_square_color = "#4a4a4a"
@@ -57,8 +57,8 @@ class ChessBoardWidget(tk.Frame):
         available_width = event.width - 20  # Padding
         available_height = event.height - 20  # Padding
 
-        # Keep it square - allow larger boards in the spacious layout
-        new_size = min(available_width, available_height, 700)  # Max 700px
+        # Keep it square - compact max size
+        new_size = min(available_width, available_height, 350)  # Max 350px
         if new_size > 100:  # Minimum size
             self.board_size = new_size
             self.square_size = self.board_size // 8
