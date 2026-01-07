@@ -1,18 +1,54 @@
 """Chess Board Widget - Visual chess board display"""
 
+import ctypes
+import os
+import sys
 import tkinter as tk
 from typing import Optional
 
 import chess
 
 
+def _load_merida_font():
+    """Load Chess Merida font from deps folder"""
+    if sys.platform != "win32":
+        return False
+
+    # Get font path
+    if getattr(sys, "frozen", False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)))))
+
+    font_path = os.path.join(base, "deps", "merifont.ttf")
+
+    if not os.path.exists(font_path):
+        return False
+
+    try:
+        # Windows: Add font resource temporarily
+        gdi32 = ctypes.windll.gdi32
+        # FR_PRIVATE = 0x10 (font only available to this process)
+        result = gdi32.AddFontResourceExW(font_path, 0x10, 0)
+        return result > 0
+    except Exception:
+        return False
+
+
+# Try to load font on module import
+_MERIDA_LOADED = _load_merida_font()
+
+
 class ChessBoardWidget(tk.Frame):
     """Professional chess board widget with position display and move arrows"""
+
+    # Fixed margin for coordinates
+    COORD_MARGIN = 16
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, bg="#2B2B2B", **kwargs)
 
-        self.base_size = 280
         self.orientation = "white"
 
         self.light_square_color = "#4a4a4a"
@@ -26,46 +62,52 @@ class ChessBoardWidget(tk.Frame):
         self.last_move = None
         self.suggestion_move = None
 
-        # Initialize sizes in __init__
-        self.board_size = self.base_size
+        self.board_size = 200
         self.square_size = self.board_size // 8
 
         self._create_canvas()
-        self._draw_initial_board()
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.bind("<Configure>", self._on_resize)
-
     def _create_canvas(self):
         """Create the main canvas for the chess board"""
         self.canvas = tk.Canvas(
-            self, bg="#2B2B2B", highlightthickness=0, relief="solid", borderwidth=1
+            self, bg="#2B2B2B", highlightthickness=0
         )
-        self.canvas.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-
+        self.canvas.grid(row=0, column=0, sticky="nsew")
         self.canvas.bind("<Configure>", self._on_canvas_resize)
-
-    def _on_resize(self, _event):
-        """Handle widget resize - canvas handles its own resize"""
 
     def _on_canvas_resize(self, event):
         """Handle canvas resize and redraw board"""
-        available_width = event.width - 20
-        available_height = event.height - 20
+        # Reserve space for coordinates on left and bottom
+        available = min(event.width, event.height) - self.COORD_MARGIN - 4
+        new_size = max(80, available)
+        # Make board size divisible by 8
+        new_size = (new_size // 8) * 8
 
-        new_size = min(available_width, available_height, 350)
-        if new_size > 100:
+        if new_size != self.board_size:
             self.board_size = new_size
             self.square_size = self.board_size // 8
             self._redraw_all()
 
-    def _draw_initial_board(self):
-        """Draw initial empty board"""
-        self.board_size = self.base_size
-        self.square_size = self.board_size // 8
-        self._redraw_all()
+    def _get_board_origin(self):
+        """Get top-left corner of the board (after coordinate margin)"""
+        canvas_w = self.canvas.winfo_width()
+        canvas_h = self.canvas.winfo_height()
+
+        # Center the board+coords in the canvas
+        total_w = self.board_size + self.COORD_MARGIN
+        total_h = self.board_size + self.COORD_MARGIN
+
+        offset_x = max(0, (canvas_w - total_w) // 2)
+        offset_y = max(0, (canvas_h - total_h) // 2)
+
+        # Board starts after left margin for rank numbers
+        board_x = offset_x + self.COORD_MARGIN
+        board_y = offset_y
+
+        return board_x, board_y
 
     def _redraw_all(self):
         """Redraw everything on the board"""
@@ -78,13 +120,7 @@ class ChessBoardWidget(tk.Frame):
 
     def _draw_board(self):
         """Draw the chess board squares"""
-        start_x = (self.canvas.winfo_width() - self.board_size) // 2
-        start_y = (self.canvas.winfo_height() - self.board_size) // 2
-
-        if start_x < 0:
-            start_x = 10
-        if start_y < 0:
-            start_y = 10
+        start_x, start_y = self._get_board_origin()
 
         for rank in range(8):
             for file in range(8):
@@ -108,67 +144,67 @@ class ChessBoardWidget(tk.Frame):
                 )
 
     def _draw_coordinates(self):
-        """Draw file and rank coordinates inside edge squares"""
-        start_x = (self.canvas.winfo_width() - self.board_size) // 2
-        start_y = (self.canvas.winfo_height() - self.board_size) // 2
-
-        if start_x < 0:
-            start_x = 10
-        if start_y < 0:
-            start_y = 10
+        """Draw file and rank coordinates outside the board"""
+        start_x, start_y = self._get_board_origin()
 
         files = "abcdefgh" if self.orientation == "white" else "hgfedcba"
         ranks = "87654321" if self.orientation == "white" else "12345678"
 
-        font_size = max(7, self.square_size // 5)
-        offset = max(4, self.square_size // 8)
+        font_size = max(8, min(11, self.COORD_MARGIN - 4))
 
-        # Draw file letters in bottom row squares
+        # File letters below the board
         for i, file_letter in enumerate(files):
-            x = start_x + i * self.square_size + self.square_size - offset
-            y = start_y + self.board_size - offset
+            x = start_x + i * self.square_size + self.square_size // 2
+            y = start_y + self.board_size + self.COORD_MARGIN // 2 + 2
             self.canvas.create_text(
                 x, y,
                 text=file_letter,
                 fill=self.coordinate_color,
                 font=("Arial", font_size),
-                anchor="se",
                 tags="coordinates",
             )
 
-        # Draw rank numbers in left column squares
+        # Rank numbers to the left of the board
         for i, rank_number in enumerate(ranks):
-            x = start_x + offset
-            y = start_y + i * self.square_size + offset
+            x = start_x - self.COORD_MARGIN // 2
+            y = start_y + i * self.square_size + self.square_size // 2
             self.canvas.create_text(
                 x, y,
                 text=rank_number,
                 fill=self.coordinate_color,
                 font=("Arial", font_size),
-                anchor="nw",
                 tags="coordinates",
             )
 
     def _draw_pieces(self):
         """Draw chess pieces on the board"""
-        start_x = (self.canvas.winfo_width() - self.board_size) // 2
-        start_y = (self.canvas.winfo_height() - self.board_size) // 2
+        start_x, start_y = self._get_board_origin()
 
-        if start_x < 0:
-            start_x = 10
-        if start_y < 0:
-            start_y = 10
-
-        piece_symbols = {
-            chess.PAWN: ("♟", "♙"),
-            chess.ROOK: ("♜", "♖"),
-            chess.KNIGHT: ("♞", "♘"),
-            chess.BISHOP: ("♝", "♗"),
-            chess.QUEEN: ("♛", "♕"),
-            chess.KING: ("♚", "♔"),
-        }
-
-        font_size = max(12, int(self.square_size * 0.6))
+        # Merida font uses letters: uppercase=white, lowercase=black
+        # k=king, q=queen, r=rook, b=bishop, n=knight, p=pawn
+        if _MERIDA_LOADED:
+            merida_symbols = {
+                chess.PAWN: ("o", "p"),      # black, white
+                chess.ROOK: ("t", "r"),
+                chess.KNIGHT: ("m", "n"),
+                chess.BISHOP: ("v", "b"),
+                chess.QUEEN: ("w", "q"),
+                chess.KING: ("l", "k"),
+            }
+            font_name = "Chess Merida"
+            font_size = max(14, int(self.square_size * 0.85))
+        else:
+            # Fallback to Unicode symbols
+            merida_symbols = {
+                chess.PAWN: ("♟", "♙"),
+                chess.ROOK: ("♜", "♖"),
+                chess.KNIGHT: ("♞", "♘"),
+                chess.BISHOP: ("♝", "♗"),
+                chess.QUEEN: ("♛", "♕"),
+                chess.KING: ("♚", "♔"),
+            }
+            font_name = "Arial"
+            font_size = max(12, int(self.square_size * 0.6))
 
         for square in chess.SQUARES:
             piece = self.current_board.piece_at(square)
@@ -178,26 +214,18 @@ class ChessBoardWidget(tk.Frame):
 
                 if self.orientation == "white":
                     x = start_x + file_idx * self.square_size + self.square_size // 2
-                    y = (
-                        start_y
-                        + (7 - rank_idx) * self.square_size
-                        + self.square_size // 2
-                    )
+                    y = start_y + (7 - rank_idx) * self.square_size + self.square_size // 2
                 else:
-                    x = (
-                        start_x
-                        + (7 - file_idx) * self.square_size
-                        + self.square_size // 2
-                    )
+                    x = start_x + (7 - file_idx) * self.square_size + self.square_size // 2
                     y = start_y + rank_idx * self.square_size + self.square_size // 2
 
-                symbol = piece_symbols[piece.piece_type][1 if piece.color else 0]
+                symbol = merida_symbols[piece.piece_type][1 if piece.color else 0]
 
                 self.canvas.create_text(
                     x, y,
                     text=symbol,
                     fill="#F5F5F5" if piece.color else "#1A1A1A",
-                    font=("Arial", font_size, "bold"),
+                    font=(font_name, font_size),
                     tags="pieces",
                 )
 
@@ -206,13 +234,7 @@ class ChessBoardWidget(tk.Frame):
         if not self.suggestion_move:
             return
 
-        start_x = (self.canvas.winfo_width() - self.board_size) // 2
-        start_y = (self.canvas.winfo_height() - self.board_size) // 2
-
-        if start_x < 0:
-            start_x = 10
-        if start_y < 0:
-            start_y = 10
+        start_x, start_y = self._get_board_origin()
 
         from_square = self.suggestion_move.from_square
         to_square = self.suggestion_move.to_square

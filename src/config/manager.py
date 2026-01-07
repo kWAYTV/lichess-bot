@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Any, Dict, Optional
 
-from ..utils.helpers import get_stockfish_path
+from ..utils.helpers import get_geckodriver_path, get_stockfish_path
 
 
 class ConfigManager:
@@ -85,6 +85,7 @@ class ConfigManager:
         }
         self.config["browser"] = {
             "firefox-binary-path": "",
+            "geckodriver-path": get_geckodriver_path(),
         }
 
         with open(self._config_path, "w", encoding="utf-8") as f:
@@ -149,6 +150,11 @@ class ConfigManager:
     def firefox_binary_path(self) -> str:
         """Get Firefox binary path"""
         return self.get("browser", "firefox-binary-path", "")
+
+    @property
+    def geckodriver_path(self) -> str:
+        """Get GeckoDriver path"""
+        return self.get("browser", "geckodriver-path", get_geckodriver_path())
 
     @property
     def log_level(self) -> str:

@@ -13,7 +13,7 @@ from selenium.webdriver.common.by import By
 
 from ..config.manager import ConfigManager
 from ..constants import Selectors
-from ..utils.helpers import get_geckodriver_path, install_firefox_extensions
+from ..utils.helpers import install_firefox_extensions
 from ..utils.resilience import browser_retry, element_retry
 
 
@@ -81,7 +81,7 @@ class BrowserManager:
             options.add_argument(f'--user-agent="{user_agent}"')
 
             # Hide geckodriver console window on Windows
-            service_kwargs = {"executable_path": get_geckodriver_path()}
+            service_kwargs = {"executable_path": config.geckodriver_path}
             if sys.platform == "win32":
                 service_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
 

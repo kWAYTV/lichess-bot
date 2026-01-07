@@ -50,9 +50,9 @@ class ChessBotGUI:
         """Create compact main window"""
         self.root = tk.Tk()
         self.root.title("Chess Bot")
-        self.root.geometry("320x480")
-        self.root.minsize(280, 400)
-        self.root.maxsize(400, 600)
+        self.root.geometry("340x520")
+        self.root.minsize(320, 480)
+        self.root.maxsize(450, 700)
         self.root.configure(bg="#1a1a1a")
         self.root.attributes("-topmost", True)
 

@@ -52,6 +52,9 @@ jobs:
           # xPath Finder extension
           Invoke-WebRequest -Uri "https://addons.mozilla.org/firefox/downloads/file/4107538/xpath_finder-1.0.3.xpi" -OutFile release\deps\xpath_finder.xpi
 
+          # Copy merifont.ttf from deps to release
+          Copy-Item deps\merifont.ttf release\deps\merifont.ttf
+
       - name: Package
         run: |
           copy dist\helping-hand.exe release\
