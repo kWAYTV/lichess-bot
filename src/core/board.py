@@ -409,3 +409,44 @@ class BoardHandler:
                 log_errors=False,
             )
         )
+
+    def get_our_clock_seconds(self) -> Optional[int]:
+        """Get our remaining time in seconds"""
+        try:
+            # Try CSS selector first (more reliable)
+            selectors = [Selectors.CLOCK_CSS_BOTTOM, Selectors.CLOCK_BOTTOM]
+            
+            for selector in selectors:
+                try:
+                    clock_elem = self.driver.find_element(*selector)
+                    clock_text = clock_elem.text.strip()
+                    if clock_text:
+                        return self._parse_clock_time(clock_text)
+                except:
+                    continue
+            
+            return None
+        except Exception as e:
+            logger.debug(f"Could not read clock: {e}")
+            return None
+
+    def _parse_clock_time(self, time_str: str) -> Optional[int]:
+        """Parse clock time string to seconds (e.g. '5:30' -> 330, '0:45' -> 45)"""
+        try:
+            # Remove any extra text
+            time_str = time_str.strip().split('\n')[0]
+            
+            if ':' in time_str:
+                parts = time_str.split(':')
+                if len(parts) == 2:
+                    mins, secs = int(parts[0]), int(parts[1])
+                    return mins * 60 + secs
+                elif len(parts) == 3:
+                    # Hours:Mins:Secs
+                    hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
+                    return hrs * 3600 + mins * 60 + secs
+            else:
+                # Just seconds
+                return int(time_str)
+        except Exception:
+            return None
