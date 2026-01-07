@@ -107,12 +107,20 @@ class TurnHandler:
 
         return move_number + 1
 
+    def _get_remaining_time(self) -> int:
+        """Get our remaining clock time in seconds"""
+        try:
+            return self.board_handler.get_our_clock_seconds() or 999
+        except:
+            return 999
+
     def _get_engine_move(self, state: GameState, move_number: int) -> chess.Move:
         """Get best move from engine"""
+        remaining = self._get_remaining_time()
         base_depth = int(self.config.get("engine", "depth", 5))
         depth = self._adjust_depth_for_time(base_depth)
         
-        advanced_humanized_delay("engine thinking", self.config, "thinking")
+        advanced_humanized_delay("engine thinking", self.config, "thinking", remaining)
 
         result = self.engine.get_best_move(state.board, depth=depth)
         move = result.move
@@ -142,13 +150,15 @@ class TurnHandler:
         self, state: GameState, move: chess.Move, move_number: int
     ) -> int:
         """Execute move automatically"""
+        remaining = self._get_remaining_time()
         logger.debug(f"Auto-executing: {move}")
 
-        if self.config.show_arrow:
+        # Skip arrow display if time is critical
+        if self.config.show_arrow and remaining > 30:
             self.board_handler.draw_arrow(move, state.our_color)
-            advanced_humanized_delay("showing arrow", self.config, "base")
+            advanced_humanized_delay("showing arrow", self.config, "base", remaining)
 
-        self.board_handler.execute_move(move, move_number)
+        self.board_handler.execute_move(move, move_number, remaining)
         state.board.push(move)
 
         is_white = (move_number % 2) == 1
@@ -184,7 +194,8 @@ class TurnHandler:
 
         # Execute on keypress
         logger.info(f"Manual key press - executing: {move}")
-        self.board_handler.execute_move(move, move_number)
+        remaining = self._get_remaining_time()
+        self.board_handler.execute_move(move, move_number, remaining)
         self.keyboard.reset_move_state()
         state.board.push(move)
 

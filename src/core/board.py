@@ -215,14 +215,14 @@ class BoardHandler:
             return False
 
     @move_retry(max_retries=3, delay=1.0)
-    def execute_move(self, move: chess.Move, move_number: int) -> None:
+    def execute_move(self, move: chess.Move, move_number: int, remaining_time: int = None) -> None:
         """Execute a move through the interface"""
         logger.debug(f"Executing move: {move}")
 
-        # Humanized delay
+        # Humanized delay (time-aware)
         if self.config_manager:
-            advanced_humanized_delay("move execution", self.config_manager, "moving")
-        else:
+            advanced_humanized_delay("move execution", self.config_manager, "moving", remaining_time)
+        elif remaining_time and remaining_time > 30:
             humanized_delay(0.5, 1.5, "move execution")
 
         self.clear_arrow()
@@ -231,10 +231,10 @@ class BoardHandler:
         if not move_handle:
             raise Exception("Could not find move input handle")
 
-        # Input delay
+        # Input delay (time-aware)
         if self.config_manager:
-            advanced_humanized_delay("move input", self.config_manager, "base")
-        else:
+            advanced_humanized_delay("move input", self.config_manager, "base", remaining_time)
+        elif remaining_time and remaining_time > 30:
             humanized_delay(0.3, 0.8, "move input")
 
         # Click to focus the input first
@@ -244,9 +244,10 @@ class BoardHandler:
             # If click fails, try JavaScript focus
             self.browser_manager.execute_script("arguments[0].focus();", move_handle)
 
+        # Typing delay (time-aware)
         if self.config_manager:
-            advanced_humanized_delay("typing", self.config_manager, "base")
-        else:
+            advanced_humanized_delay("typing", self.config_manager, "base", remaining_time)
+        elif remaining_time and remaining_time > 30:
             humanized_delay(0.2, 0.5, "typing")
 
         # Try sending keys, fall back to JavaScript if needed
