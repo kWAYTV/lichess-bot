@@ -23,9 +23,18 @@ class ConfigManager:
     def __init__(self):
         if not self._initialized:
             self.config = configparser.ConfigParser()
-            self._config_path = "config.ini"
+            self._config_path = self._get_config_path()
             self._load_or_create_config()
             ConfigManager._initialized = True
+
+    def _get_config_path(self) -> str:
+        """Get config path relative to exe/script location"""
+        import sys
+        if getattr(sys, 'frozen', False):
+            base = os.path.dirname(sys.executable)
+        else:
+            base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.join(base, "config.ini")
 
     def _load_or_create_config(self) -> None:
         """Load existing config or create default"""

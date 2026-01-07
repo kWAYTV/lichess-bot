@@ -24,10 +24,11 @@ def main():
         gui_handler = GUILogHandler()
 
         logger.remove()
-        logger.add(sys.stderr, level=config.log_level)
+        log_level = config.log_level or "INFO"
+        logger.add(sys.stderr, level=log_level)
 
         try:
-            logger.add(gui_handler.write, level=config.log_level, colorize=False)
+            logger.add(gui_handler.write, level=log_level, colorize=False)
         except Exception as e:
             logger.warning(f"Could not set up GUI logging: {e}")
 
