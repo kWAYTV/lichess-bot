@@ -255,14 +255,50 @@ class BoardHandler:
             move_handle.send_keys(str(move))
             move_handle.send_keys(Keys.RETURN)
         except Exception as e:
-            logger.warning(f"Direct input failed, using JavaScript: {e}")
-            # JavaScript fallback
+            error_msg = str(e).lower()
+            if "not reachable" in error_msg or "not interactable" in error_msg or "scroll" in error_msg:
+                logger.error("⚠️ INPUT BOX HIDDEN - Make browser window wider!")
+                self._show_input_hidden_warning()
+            
+            logger.warning(f"Direct input failed, using JavaScript fallback")
+            # JavaScript fallback - submit via form
+            try:
+                self.browser_manager.execute_script(
+                    """
+                    var input = arguments[0];
+                    var move = arguments[1];
+                    input.value = move;
+                    input.dispatchEvent(new Event('input', {bubbles: true}));
+                    var form = input.closest('form');
+                    if (form) form.dispatchEvent(new Event('submit', {bubbles: true}));
+                    else {
+                        var event = new KeyboardEvent('keydown', {key: 'Enter', keyCode: 13, bubbles: true});
+                        input.dispatchEvent(event);
+                    }
+                    """,
+                    move_handle,
+                    str(move),
+                )
+            except Exception as js_error:
+                logger.error(f"JavaScript fallback also failed: {js_error}")
+                raise
+
+    def _show_input_hidden_warning(self) -> None:
+        """Show warning about hidden input box"""
+        try:
+            # Inject a visual warning into the page
             self.browser_manager.execute_script(
-                "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', {bubbles: true}));",
-                move_handle,
-                str(move),
+                """
+                if (!document.getElementById('bot-warning')) {
+                    var warn = document.createElement('div');
+                    warn.id = 'bot-warning';
+                    warn.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#ff4444;color:white;padding:12px 24px;border-radius:8px;z-index:99999;font-family:sans-serif;font-size:14px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+                    warn.innerHTML = '⚠️ Move input hidden! Widen browser window or zoom out (Ctrl+-)';
+                    document.body.appendChild(warn);
+                    setTimeout(function() { warn.remove(); }, 8000);
+                }
+                """
             )
-            move_handle.send_keys(Keys.RETURN)
 
     def clear_arrow(self) -> None:
         """Clear any arrows on the board"""
