@@ -1,15 +1,26 @@
 """Compact GUI Window for Chess Bot"""
 
 import os
+import sys
 import threading
 import tkinter as tk
 from tkinter import ttk
 from typing import Optional
 
 import chess
-from ..utils.logging import logger
 from PIL import Image
 import pystray
+
+from ..utils.logging import logger
+
+
+def get_asset_path(filename: str) -> str:
+    """Get path to bundled asset, works for dev and PyInstaller"""
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "assets", filename)
 
 from .widgets.chess_board import ChessBoardWidget
 from .widgets.log_panel import LogPanelWidget
@@ -45,10 +56,7 @@ class ChessBotGUI:
         self.root.configure(bg="#1a1a1a")
         self.root.attributes("-topmost", True)
 
-        try:
-            self.root.iconbitmap("assets/icon.ico")
-        except tk.TclError:
-            pass
+        self.root.iconbitmap(get_asset_path("icon.ico"))
 
         self.root.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
 
@@ -279,11 +287,7 @@ class ChessBotGUI:
     def _setup_tray_icon(self):
         """Setup system tray icon"""
         try:
-            icon_path = "assets/icon.ico"
-            if os.path.exists(icon_path):
-                image = Image.open(icon_path)
-            else:
-                image = Image.new("RGB", (64, 64), "#00DD88")
+            image = Image.open(get_asset_path("icon.ico"))
 
             menu = pystray.Menu(
                 pystray.MenuItem("Show", self._show_from_tray, default=True),

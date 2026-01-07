@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: |
           pip install -r requirements.txt
-          pyinstaller --onefile --noconsole --icon="assets/icon.ico" --name helping-hand main.py
+          pyinstaller --onefile --noconsole --icon="assets/icon.ico" --add-data="assets/icon.ico;assets" --name helping-hand main.py
 
       - name: Download Dependencies
         run: |
@@ -57,8 +57,6 @@ jobs:
           copy dist\helping-hand.exe release\
           copy config.example.ini release\
           copy README.md release\
-          mkdir release\assets
-          copy assets\icon.ico release\assets\
           Compress-Archive -Path release\* -DestinationPath helping-hand-${{ steps.tag.outputs.new_tag }}.zip
 
       - name: Release
