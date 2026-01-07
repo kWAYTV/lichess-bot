@@ -15,6 +15,7 @@ from .widgets.chess_board import ChessBoardWidget
 from .widgets.log_panel import LogPanelWidget
 from .widgets.move_history import MoveHistoryWidget
 from .widgets.result_popup import show_game_result
+from .widgets.settings_panel import SettingsPanelWidget
 from .widgets.stats_panel import StatisticsPanelWidget
 
 
@@ -143,6 +144,15 @@ class ChessBotGUI:
         self.stats_panel = StatisticsPanelWidget(stats_frame, compact=True)
         self.stats_panel.grid(row=0, column=0, sticky="nsew")
         self.notebook.add(stats_frame, text="Stats")
+
+        # Settings tab
+        settings_frame = tk.Frame(self.notebook, bg="#1a1a1a")
+        settings_frame.grid_columnconfigure(0, weight=1)
+        settings_frame.grid_rowconfigure(0, weight=1)
+        config_mgr = self.game_manager.config_manager if self.game_manager else None
+        self.settings_panel = SettingsPanelWidget(settings_frame, config_mgr)
+        self.settings_panel.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self.notebook.add(settings_frame, text="⚙")
 
         # Footer
         footer = tk.Frame(self.root, bg="#1a1a1a", height=24)
