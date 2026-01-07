@@ -180,7 +180,6 @@ class ChessBotGUI:
         """Auto-start the bot"""
         if not self.is_running and self.game_manager:
             self.is_running = True
-            self.log_panel.add_log("Starting bot...", "info")
             threading.Thread(target=self._run_game_manager, daemon=True).start()
 
     def _run_game_manager(self):

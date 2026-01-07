@@ -38,17 +38,17 @@ class GUILogHandler(logging.Handler):
         try:
             if self.gui and hasattr(self.gui, "root") and self.gui.root:
                 level = record.levelname.lower()
-                # Get message and strip ANSI codes
-                text = strip_ansi(record.getMessage())
-                # Extract just the actual message (skip structlog metadata)
-                # structlog format: "HH:MM:SS [level] message [logger]"
-                # We just want the message part
-                if "] " in text and "[" in text:
-                    # Find the message between level bracket and logger bracket
-                    parts = text.split("] ", 2)
-                    if len(parts) >= 3:
-                        msg = parts[2].rsplit(" [", 1)[0].strip()
-                        text = msg if msg else text
+                # Get the original message args, not the formatted structlog output
+                # record.msg contains the event, record.args is empty for structlog
+                # For structlog, the actual message is in the "event" key
+                if hasattr(record, "_event_dict") and "event" in record._event_dict:
+                    text = record._event_dict["event"]
+                else:
+                    # Fallback: parse from formatted message
+                    text = strip_ansi(record.getMessage())
+                    match = re.search(r"\]\s+(.+?)\s+\[[^\]]+\]$", text)
+                    if match:
+                        text = match.group(1).strip()
                 self.gui.root.after(0, lambda: self.gui.add_log(text, level))
         except Exception:
             pass
@@ -78,7 +78,6 @@ def setup_logging(level: str = "INFO", gui_handler: Optional[GUILogHandler] = No
         processors=[
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_log_level,
-            structlog.stdlib.add_logger_name,
             structlog.processors.TimeStamper(fmt="%H:%M:%S"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.UnicodeDecoder(),
