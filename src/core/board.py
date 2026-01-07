@@ -286,7 +286,6 @@ class BoardHandler:
     def _show_input_hidden_warning(self) -> None:
         """Show warning about hidden input box"""
         try:
-            # Inject a visual warning into the page
             self.browser_manager.execute_script(
                 """
                 if (!document.getElementById('bot-warning')) {
@@ -299,6 +298,8 @@ class BoardHandler:
                 }
                 """
             )
+        except Exception:
+            pass  # Don't fail if warning can't be shown
 
     def clear_arrow(self) -> None:
         """Clear any arrows on the board"""
