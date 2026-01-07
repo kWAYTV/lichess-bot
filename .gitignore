@@ -163,7 +163,9 @@ cython_debug/
 
 debug/
 test/
-deps/
+
+deps/**/*
+!deps/merifont.ttf
 
 config.ini
 !config.example.ini
