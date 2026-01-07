@@ -21,10 +21,7 @@ class LichessAuth:
             if self._try_cookie_login():
                 return True
 
-            logger.error(
-                "Cookie login failed. Please export your cookies from lichess.org "
-                "and place them in deps/lichess.org.cookies.json"
-            )
+            logger.error("Cookie login failed")
             return False
 
         except Exception as e:
@@ -33,7 +30,6 @@ class LichessAuth:
 
     def _try_cookie_login(self) -> bool:
         """Try to login using saved cookies"""
-        logger.debug("Attempting cookie-based login")
 
         # Load cookies and check if we're logged in
         cookies_loaded = self.browser_manager.load_cookies()
@@ -46,9 +42,8 @@ class LichessAuth:
         time.sleep(2)
 
         if self.browser_manager.is_logged_in():
-            logger.success("Successfully logged in using saved cookies")
+            logger.success("Logged in")
             return True
         else:
-            logger.debug("Saved cookies are invalid or expired")
             self.browser_manager.clear_cookies()
             return False

@@ -30,18 +30,16 @@ def find_firefox_binary() -> Optional[str]:
 
     for path in common_paths:
         if os.path.exists(path):
-            logger.debug(f"Found Firefox at: {path}")
             return path
 
     try:
         result = shutil.which("firefox")
         if result:
-            logger.debug(f"Found Firefox via PATH: {result}")
             return result
     except:
         pass
 
-    logger.warning("Could not find Firefox binary")
+    logger.warning("Firefox not found")
     return None
 
 
@@ -73,7 +71,6 @@ class BrowserManager:
             options = webdriver.FirefoxOptions()
             if firefox_binary:
                 options.binary_location = firefox_binary
-                logger.info(f"Using Firefox: {firefox_binary}")
 
             options.add_argument(
                 '--user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"'
@@ -85,7 +82,6 @@ class BrowserManager:
 
             self.driver = webdriver.Firefox(service=service, options=options)
             install_firefox_extensions(self.driver)
-            logger.debug("Firefox WebDriver initialized")
 
         except Exception as e:
             logger.error(f"Failed to initialize WebDriver: {e}")
@@ -102,7 +98,6 @@ class BrowserManager:
         """Navigate to a URL"""
         if not self.driver:
             raise RuntimeError("WebDriver not initialized")
-        logger.debug(f"Navigating to: {url}")
         self.driver.get(url)
 
     @element_retry(max_retries=2, delay=0.5)
@@ -150,14 +145,12 @@ class BrowserManager:
             cookies = self.driver.get_cookies()
             with open(self.COOKIES_FILE, "w") as f:
                 json.dump(cookies, f, indent=2)
-            logger.debug(f"Saved {len(cookies)} cookies")
         except Exception as e:
             logger.error(f"Failed to save cookies: {e}")
 
     def load_cookies(self) -> bool:
         """Load cookies from file"""
         if not os.path.exists(self.COOKIES_FILE):
-            logger.info("No saved cookies found")
             return False
 
         try:
@@ -165,16 +158,13 @@ class BrowserManager:
                 cookies = json.load(f)
 
             if not self.driver or not self.current_url.startswith("https://lichess.org"):
-                logger.debug("Cannot load cookies - not on Lichess domain")
                 return False
 
             for cookie in cookies:
                 try:
                     self.driver.add_cookie(cookie)
                 except Exception as e:
-                    logger.debug(f"Failed to add cookie: {e}")
 
-            logger.debug(f"Loaded {len(cookies)} cookies")
             return True
 
         except Exception as e:
@@ -188,7 +178,6 @@ class BrowserManager:
                 self.driver.delete_all_cookies()
             if os.path.exists(self.COOKIES_FILE):
                 os.remove(self.COOKIES_FILE)
-            logger.debug("Cleared cookies")
         except Exception as e:
             logger.error(f"Failed to clear cookies: {e}")
 
@@ -220,7 +209,6 @@ class BrowserManager:
                 try:
                     el = self.driver.find_element(By.CSS_SELECTOR, selector)
                     if el and el.text.strip():
-                        logger.debug(f"Login detected: {selector}")
                         return True
                 except:
                     continue
@@ -228,18 +216,15 @@ class BrowserManager:
             # Check page source
             source = self.driver.page_source.lower()
             if any(ind in source for ind in Selectors.LOGIN_PAGE_INDICATORS):
-                logger.debug("Login detected via page source")
                 return True
 
             return False
 
         except Exception as e:
-            logger.debug(f"Error checking login: {e}")
             return False
 
     def close(self) -> None:
         """Close the browser"""
         if self.driver:
-            logger.info("Closing browser")
             self.driver.quit()
             self.driver = None

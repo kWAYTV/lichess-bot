@@ -40,7 +40,6 @@ def install_firefox_extensions(driver):
     if os.path.exists(extension_path):
         try:
             driver.install_addon(extension_path)
-            logger.debug(f"Successfully installed extension: {extension_path}")
         except Exception as e:
             logger.warning(f"Failed to install extension {extension_path}: {e}")
 
@@ -76,7 +75,6 @@ def humanized_delay(
     # Ensure minimum delay of 0.1s
     final_delay = max(0.1, final_delay)
 
-    logger.debug(f"Delaying {action} for {final_delay:.2f}s")
 
     sleep(final_delay)
 
@@ -99,7 +97,6 @@ def advanced_humanized_delay(
     if remaining_time is not None and remaining_time >= 0:
         if remaining_time < 10:
             time_mult = 0.0  # Critical: no delays
-            logger.debug(f"⚡ CRITICAL TIME ({remaining_time}s) - skipping {action}")
         elif remaining_time < 30:
             time_mult = 0.2  # Very low: minimal delays
         elif remaining_time < 60:
@@ -110,11 +107,9 @@ def advanced_humanized_delay(
             time_mult = 1.0  # Normal
     else:
         time_mult = 1.0
-        logger.warning(f"No remaining_time passed to delay, using full delays")
 
     # Skip delays entirely in critical time
     if time_mult == 0.0:
-        logger.debug(f"Skipping {action} delay (critical time)")
         return
 
     # Scale base delay
@@ -128,7 +123,6 @@ def advanced_humanized_delay(
     pause_bonus = 0
     if time_mult >= 0.7 and random.random() < 0.1:
         pause_bonus = random.uniform(0.5, 1.5) * time_mult
-        logger.debug(f"Adding thinking pause: {pause_bonus:.2f}s")
 
     # Micro-hesitations (scaled)
     micro_hesitation = random.uniform(-0.05, 0.15) * time_mult
@@ -137,7 +131,6 @@ def advanced_humanized_delay(
     final_delay = base_delay + jitter_1 + jitter_2 + pause_bonus + micro_hesitation
     final_delay = max(0.05, final_delay)  # Lower minimum for speed
 
-    logger.debug(f"Delaying {action} for {final_delay:.2f}s (time_mult={time_mult:.1f})")
 
     sleep(final_delay)
 
@@ -149,7 +142,6 @@ def clear_screen() -> None:
 
 def signal_handler(sig, frame):
     """Handle graceful shutdown"""
-    logger.info("Received interrupt signal, shutting down...")
     sys.exit(0)
 
 

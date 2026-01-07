@@ -28,13 +28,11 @@ class ChessEngine:
                 raise ValueError("Engine path not found in config")
 
             self.engine = chess.engine.SimpleEngine.popen_uci(path)
-            logger.debug(f"Started chess engine: {path}")
 
             skill = int(cfg.get("skill-level", 14))
             hash_size = int(cfg.get("hash", 2048))
 
             self.engine.configure({"Skill Level": skill, "Hash": hash_size})
-            logger.debug(f"Engine configured - Skill: {skill}, Hash: {hash_size}")
 
         except Exception as e:
             logger.error(f"Failed to start chess engine: {e}")
@@ -50,13 +48,11 @@ class ChessEngine:
     ) -> chess.engine.PlayResult:
         """Get the best move for the current position"""
         if not self.engine:
-            logger.warning("Engine not initialized, reinitializing")
             self._initialize_engine()
 
         if depth is None:
             depth = int(self.config.get("engine", "depth", 5))
 
-        logger.debug(f"Calculating best move (depth: {depth})")
 
         result = self.engine.play(
             board,
@@ -74,7 +70,6 @@ class ChessEngine:
         else:
             result.info = analysis
 
-        logger.debug(f"Engine suggests: {result.move}")
         return result
 
     @retry_on_exception(
@@ -87,7 +82,6 @@ class ChessEngine:
     ) -> Dict[str, Any]:
         """Analyze the current position"""
         if not self.engine:
-            logger.warning("Engine not initialized, reinitializing")
             self._initialize_engine()
 
         return self.engine.analyse(board, chess.engine.Limit(time=time_limit))
@@ -99,6 +93,5 @@ class ChessEngine:
     def quit(self) -> None:
         """Stop the chess engine"""
         if self.engine:
-            logger.debug("Stopping chess engine")
             safe_execute(self.engine.quit, log_errors=True)
             self.engine = None

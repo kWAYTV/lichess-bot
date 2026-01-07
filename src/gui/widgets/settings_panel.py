@@ -206,7 +206,6 @@ class SettingsPanelWidget(tk.Frame):
             self.config.save()
             
             self._flash_status("✓ Saved!", "#66ff66")
-            logger.info("Settings saved")
             
             if self.on_save:
                 self.on_save()
@@ -230,7 +229,6 @@ class SettingsPanelWidget(tk.Frame):
                 presets = get_all_presets()
                 preset = presets.get(preset_name)
                 self._flash_status(f"✓ {preset.name} preset applied!", "#66ff66")
-                logger.info(f"Applied {preset_name} preset")
             else:
                 self._flash_status("✗ Unknown preset", "#ff6666")
         except Exception as e:

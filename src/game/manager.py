@@ -60,7 +60,7 @@ class GameManager:
 
     def start(self) -> None:
         """Start the chess bot"""
-        logger.info("Starting chess bot")
+        logger.info("Starting bot")
         self._log_mode()
 
         self.keyboard.start_listening()
@@ -71,15 +71,14 @@ class GameManager:
             logger.error("Failed to sign in to Lichess")
             return
 
-        logger.info("Waiting for game to start")
         self._start_new_game()
 
     def _log_mode(self) -> None:
         """Log current mode"""
         if self.config.is_autoplay_enabled:
-            logger.info("AutoPlay MODE: Bot will make moves automatically")
+            logger.info("Mode: auto-play")
         else:
-            logger.info(f"Suggestion MODE: Press '{self.config.move_key}' to execute")
+            logger.info(f"Mode: manual (press {self.config.move_key})")
 
     def _navigate_to_lichess(self) -> None:
         """Navigate to Lichess with recovery"""
@@ -96,14 +95,12 @@ class GameManager:
         """Show cookie status"""
         info = self.browser_manager.get_cookies_info()
         if info["exists"]:
-            logger.debug(f"Found {info['count']} saved cookies")
         else:
-            logger.warning("No cookies found - please export to deps/lichess.org.cookies.json")
+            logger.warning("No cookies found")
 
     def _start_new_game(self) -> None:
         """Initialize and start a new game"""
         self.state.reset()
-        logger.debug("Starting new game")
 
         # Wait for any previous game over screen to clear
         self._wait_for_game_over_clear()
@@ -132,12 +129,10 @@ class GameManager:
         while self.board_handler.is_game_over() and waited < max_wait:
             sleep(1)
             waited += 1
-        if waited > 0:
-            logger.debug(f"Waited {waited}s for game over screen to clear")
 
     def _wait_for_game_ready(self) -> bool:
         """Wait for game to be ready - polls continuously"""
-        logger.info("Waiting for game to start...")
+        logger.info("Waiting for game...")
         poll_interval = 3  # seconds between checks
 
         while True:
@@ -146,7 +141,6 @@ class GameManager:
                     return True
                 sleep(poll_interval)
             except Exception as e:
-                logger.debug(f"Waiting for game: {e}")
                 if not self.recovery.is_browser_healthy():
                     if not self.recovery.attempt_browser_recovery():
                         return False
@@ -161,14 +155,13 @@ class GameManager:
             initial_time = self.board_handler.get_our_clock_seconds()
             if initial_time:
                 preset_name = auto_apply_preset(self.config, initial_time)
-                logger.info(f"⚡ Auto-preset: {preset_name.capitalize()} ({initial_time}s clock)")
+                logger.info(f"Preset: {preset_name} ({initial_time}s)")
                 self._notify_gui({
                     "type": "preset_applied",
                     "preset": preset_name,
                     "initial_time": initial_time,
                 })
         except Exception as e:
-            logger.debug(f"Auto-preset failed: {e}")
 
     def _determine_color(self) -> None:
         """Determine player color"""
@@ -176,7 +169,6 @@ class GameManager:
             self.state.our_color = self.board_handler.determine_player_color()
         except Exception as e:
             logger.error(f"Color detection failed: {e}")
-            logger.warning("Assuming White")
             self.state.our_color = "W"
 
     def _play_game(self) -> None:
@@ -208,21 +200,13 @@ class GameManager:
 
     def _log_game_start(self, move_number: int) -> None:
         """Log game start info"""
-        if move_number == 1:
-            if self.state.our_color == "W":
-                logger.info("Starting as White - we move first")
-            else:
-                logger.info("Starting as Black - waiting for White")
-        else:
-            if self.state.is_our_turn():
-                logger.info(f"Joined at move {move_number} - our turn")
-            else:
-                logger.info(f"Joined at move {move_number} - opponent's turn")
+        if move_number > 1:
+            logger.info(f"Joined at move {move_number}")
 
     def _game_tick(self, move_number: int) -> int:
         """Single game loop iteration"""
         if not validate_game_state(self.state.board, move_number):
-            logger.warning("Game state validation failed")
+            logger.warning("State validation failed")
             self.debug.save_debug_info(
                 self.browser_manager.get_driver(), move_number, self.state.board
             )
@@ -246,18 +230,14 @@ class GameManager:
 
     def _handle_game_end(self) -> None:
         """Handle game end"""
-        logger.debug("Game completed")
 
         if not self.state.result_logged:
             self.result_handler.log_result(self.state)
             self.state.result_logged = True
             self.state.waiting_for_ack = True
 
-            logger.info("Waiting for user acknowledgment")
             while self.state.waiting_for_ack:
                 sleep(0.5)
-
-            logger.info("User acknowledged - starting new game")
 
         self._start_new_game()
 
@@ -268,7 +248,6 @@ class GameManager:
     def acknowledge_game_result(self) -> None:
         """Called when user acknowledges result"""
         self.state.waiting_for_ack = False
-        logger.debug("Result acknowledged")
 
     def _notify_gui(self, data: dict) -> None:
         """Notify GUI of updates"""
@@ -280,11 +259,10 @@ class GameManager:
 
     def cleanup(self) -> None:
         """Clean up resources"""
-        logger.info("Cleaning up")
 
         safe_execute(self.keyboard.stop_listening, log_errors=True)
         safe_execute(self.engine.quit, log_errors=True)
         safe_execute(self.browser_manager.close, log_errors=True)
 
-        logger.info("Cleanup completed")
+        logger.info("Stopped")
 

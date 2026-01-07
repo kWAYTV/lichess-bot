@@ -188,7 +188,6 @@ class MoveHistoryWidget(tk.Frame):
             self.clipboard_append(pgn)
             self.update()  # Required for clipboard to persist
             self._flash_button("Copied!", "#66ff66")
-            logger.debug(f"Copied PGN: {pgn[:50]}...")
         except Exception as e:
             logger.error(f"Failed to copy PGN: {e}")
             self._flash_button("Error", "#ff6666")
