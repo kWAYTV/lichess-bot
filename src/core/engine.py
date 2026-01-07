@@ -1,12 +1,14 @@
 """Chess Engine - Stockfish integration"""
 
+import subprocess
+import sys
 from typing import Any, Dict, Optional
 
 import chess
 import chess.engine
-from ..utils.logging import logger
 
 from ..config import ConfigManager
+from ..utils.logging import logger
 from ..utils.resilience import retry_on_exception, safe_execute
 
 
@@ -27,7 +29,12 @@ class ChessEngine:
             if not path:
                 raise ValueError("Engine path not found in config")
 
-            self.engine = chess.engine.SimpleEngine.popen_uci(path)
+            # Hide console window on Windows
+            popen_kwargs = {}
+            if sys.platform == "win32":
+                popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+            self.engine = chess.engine.SimpleEngine.popen_uci(path, **popen_kwargs)
 
             skill = int(cfg.get("skill-level", 14))
             hash_size = int(cfg.get("hash", 2048))

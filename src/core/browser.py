@@ -2,10 +2,12 @@
 
 import json
 import os
+import subprocess
+import sys
 from typing import Optional
 
-from ..utils.logging import logger
 from selenium import webdriver
+from ..utils.logging import logger
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 
@@ -78,9 +80,12 @@ class BrowserManager:
             )
             options.add_argument(f'--user-agent="{user_agent}"')
 
-            service = webdriver.firefox.service.Service(
-                executable_path=get_geckodriver_path()
-            )
+            # Hide geckodriver console window on Windows
+            service_kwargs = {"executable_path": get_geckodriver_path()}
+            if sys.platform == "win32":
+                service_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+            service = webdriver.firefox.service.Service(**service_kwargs)
 
             self.driver = webdriver.Firefox(service=service, options=options)
             install_firefox_extensions(self.driver)
