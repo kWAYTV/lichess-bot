@@ -164,6 +164,8 @@ cython_debug/
 debug/
 test/
 deps/
+
 config.ini
 !config.example.ini
+
 stats.json
