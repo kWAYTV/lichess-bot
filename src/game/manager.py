@@ -105,6 +105,9 @@ class GameManager:
         self.state.reset()
         logger.debug("Starting new game")
 
+        # Wait for any previous game over screen to clear
+        self._wait_for_game_over_clear()
+
         if not self._wait_for_game_ready():
             return
 
@@ -119,23 +122,32 @@ class GameManager:
 
         self._play_game()
 
+    def _wait_for_game_over_clear(self) -> None:
+        """Wait for game over screen to clear before looking for new game"""
+        max_wait = 30  # Max 30 seconds
+        waited = 0
+        while self.board_handler.is_game_over() and waited < max_wait:
+            sleep(1)
+            waited += 1
+        if waited > 0:
+            logger.debug(f"Waited {waited}s for game over screen to clear")
+
     def _wait_for_game_ready(self) -> bool:
-        """Wait for game to be ready with retries"""
-        for attempt in range(3):
+        """Wait for game to be ready - polls continuously"""
+        logger.info("Waiting for game to start...")
+        poll_interval = 3  # seconds between checks
+
+        while True:
             try:
                 if self.board_handler.wait_for_game_ready():
                     return True
-                logger.warning(f"Game ready attempt {attempt + 1}/3 failed")
-                if attempt < 2:
-                    sleep(2)
+                sleep(poll_interval)
             except Exception as e:
-                logger.error(f"Error waiting for game: {e}")
-                if attempt < 2 and self.recovery.attempt_browser_recovery():
-                    continue
-                return False
-
-        logger.error("Failed to wait for game ready")
-        return False
+                logger.debug(f"Waiting for game: {e}")
+                if not self.recovery.is_browser_healthy():
+                    if not self.recovery.attempt_browser_recovery():
+                        return False
+                sleep(poll_interval)
 
     def _determine_color(self) -> None:
         """Determine player color"""
