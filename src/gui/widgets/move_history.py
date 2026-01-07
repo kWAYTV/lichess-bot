@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import List
 
 import chess
+from loguru import logger
 
 
 class MoveHistoryWidget(tk.Frame):
@@ -82,6 +83,20 @@ class MoveHistoryWidget(tk.Frame):
             bg="#2B2B2B",
         )
 
+        # Copy PGN button
+        self.copy_btn = tk.Button(
+            self,
+            text="📋 Copy PGN",
+            font=("Segoe UI", 9),
+            fg="#ffffff",
+            bg="#3a3a4a",
+            activebackground="#4a4a5a",
+            activeforeground="#ffffff",
+            relief="flat",
+            cursor="hand2",
+            command=self._copy_pgn,
+        )
+
     def _setup_layout(self):
         """Setup widget layout"""
         self.grid_columnconfigure(0, weight=1)
@@ -96,7 +111,8 @@ class MoveHistoryWidget(tk.Frame):
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.scrollbar.grid(row=0, column=1, sticky="ns")
 
-        self.status_label.grid(row=2, column=0, pady=(0, 0), sticky="ew")
+        self.status_label.grid(row=2, column=0, pady=(0, 4), sticky="ew")
+        self.copy_btn.grid(row=3, column=0, pady=(0, 4), sticky="ew")
 
     def add_move(self, move: chess.Move, move_number: int, is_white: bool):
         """Add a move to the history"""
@@ -145,3 +161,42 @@ class MoveHistoryWidget(tk.Frame):
     def get_move_count(self) -> int:
         """Get total number of moves"""
         return sum(1 for m in self.moves if m[1]) + sum(1 for m in self.moves if m[2])
+
+    def get_pgn(self) -> str:
+        """Generate PGN string from moves"""
+        if not self.moves:
+            return ""
+
+        pgn_parts = []
+        for move_num, white, black in self.moves:
+            if white:
+                pgn_parts.append(f"{move_num}. {white}")
+            if black:
+                pgn_parts.append(black)
+
+        return " ".join(pgn_parts)
+
+    def _copy_pgn(self) -> None:
+        """Copy PGN to clipboard"""
+        pgn = self.get_pgn()
+        if not pgn:
+            self._flash_button("No moves", "#ff6666")
+            return
+
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(pgn)
+            self.update()  # Required for clipboard to persist
+            self._flash_button("Copied!", "#66ff66")
+            logger.debug(f"Copied PGN: {pgn[:50]}...")
+        except Exception as e:
+            logger.error(f"Failed to copy PGN: {e}")
+            self._flash_button("Error", "#ff6666")
+
+    def _flash_button(self, text: str, color: str) -> None:
+        """Temporarily change button text and color"""
+        original_text = self.copy_btn.cget("text")
+        original_bg = self.copy_btn.cget("bg")
+
+        self.copy_btn.configure(text=text, bg=color)
+        self.after(1500, lambda: self.copy_btn.configure(text=original_text, bg=original_bg))
