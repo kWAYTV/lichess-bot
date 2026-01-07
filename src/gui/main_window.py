@@ -186,7 +186,12 @@ class ChessBotGUI:
             self.is_running = False
 
     def update_from_game_manager(self, update_data: dict):
-        """Handle game manager updates"""
+        """Handle game manager updates (thread-safe)"""
+        # Schedule update on main thread
+        self.root.after(0, lambda: self._process_update(update_data))
+
+    def _process_update(self, update_data: dict):
+        """Process update on main thread"""
         try:
             t = update_data.get("type")
 

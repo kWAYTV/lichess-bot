@@ -286,61 +286,51 @@ class BoardHandler:
     def _inject_arrow_svg(
         self, transform: List[float], board_size: str, src: str, dst: str
     ) -> None:
-        """Inject arrow SVG into the page"""
+        """Inject clean arrow SVG into the page"""
         self.browser_manager.execute_script(
             """
             var x1 = arguments[0], y1 = arguments[1], x2 = arguments[2], y2 = arguments[3];
-            var size = arguments[4], src = arguments[5], dst = arguments[6];
 
             var defs = document.getElementsByTagName("defs")[0];
-            var marker = document.getElementsByTagName("marker")[0];
-
-            if (!marker) {
-                marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-                marker.setAttribute("id", "arrowhead-g");
+            if (!document.getElementById("arrow-head")) {
+                var marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+                marker.setAttribute("id", "arrow-head");
                 marker.setAttribute("orient", "auto");
-                marker.setAttribute("markerWidth", "4");
-                marker.setAttribute("markerHeight", "8");
-                marker.setAttribute("refX", "2.05");
-                marker.setAttribute("refY", "2.01");
-                
-                var path = document.createElement('path');
-                path.setAttribute("d", "M0,0 V4 L3,2 Z");
-                path.setAttribute("fill", "#15781B");
+                marker.setAttribute("markerWidth", "3");
+                marker.setAttribute("markerHeight", "6");
+                marker.setAttribute("refX", "1.5");
+                marker.setAttribute("refY", "1.5");
+                var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", "M0,0 L0,3 L3,1.5 Z");
+                path.setAttribute("fill", "rgba(255,170,0,0.9)");
                 marker.appendChild(path);
                 defs.appendChild(marker);
             }
 
             var g = document.getElementsByTagName("g")[0];
+            g.innerHTML = "";
             
-            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute("stroke", "#15781B");
-            line.setAttribute("stroke-width", "0.15625");
+            // Clean arrow line
+            var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("stroke", "rgba(255,170,0,0.85)");
+            line.setAttribute("stroke-width", "0.18");
             line.setAttribute("stroke-linecap", "round");
-            line.setAttribute("marker-end", "url(#arrowhead-g)");
-            line.setAttribute("opacity", "1");
+            line.setAttribute("marker-end", "url(#arrow-head)");
             line.setAttribute("x1", x1);
             line.setAttribute("y1", y1);
             line.setAttribute("x2", x2);
             line.setAttribute("y2", y2);
             g.appendChild(line);
             
-            var dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            dot.setAttribute("cx", x2);
-            dot.setAttribute("cy", y2);
-            dot.setAttribute("r", "0.08");
-            dot.setAttribute("fill", "#FFD700");
-            dot.setAttribute("fill-opacity", "0.9");
-            dot.setAttribute("stroke", "#15781B");
-            dot.setAttribute("stroke-width", "0.02");
-            g.appendChild(dot);
-            
-            var pulse = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-            pulse.setAttribute("attributeName", "r");
-            pulse.setAttribute("values", "0.08;0.12;0.08");
-            pulse.setAttribute("dur", "2s");
-            pulse.setAttribute("repeatCount", "indefinite");
-            dot.appendChild(pulse);
+            // Source square highlight
+            var src_circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            src_circle.setAttribute("cx", x1);
+            src_circle.setAttribute("cy", y1);
+            src_circle.setAttribute("r", "0.15");
+            src_circle.setAttribute("fill", "rgba(255,170,0,0.3)");
+            src_circle.setAttribute("stroke", "rgba(255,170,0,0.6)");
+            src_circle.setAttribute("stroke-width", "0.03");
+            g.appendChild(src_circle);
             """,
             transform[0],
             transform[1],
