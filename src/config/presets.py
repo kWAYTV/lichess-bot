@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Dict
 
+from ..utils.logging import logger
+
 
 @dataclass
 class GamePreset:
@@ -116,4 +118,5 @@ def auto_apply_preset(config_manager, initial_seconds: int) -> str:
     """Detect and apply the appropriate preset based on clock time"""
     preset_name = detect_preset_from_time(initial_seconds)
     apply_preset(config_manager, preset_name)
+    logger.info(f"Auto-preset: {preset_name} ({initial_seconds}s clock)")
     return preset_name
