@@ -421,7 +421,9 @@ class BoardHandler:
                     clock_elem = self.driver.find_element(*selector)
                     clock_text = clock_elem.text.strip()
                     if clock_text:
-                        return self._parse_clock_time(clock_text)
+                        seconds = self._parse_clock_time(clock_text)
+                        logger.debug(f"Clock raw='{clock_text}' parsed={seconds}s")
+                        return seconds
                 except:
                     continue
             
@@ -433,20 +435,34 @@ class BoardHandler:
     def _parse_clock_time(self, time_str: str) -> Optional[int]:
         """Parse clock time string to seconds (e.g. '5:30' -> 330, '0:45' -> 45)"""
         try:
-            # Remove any extra text
-            time_str = time_str.strip().split('\n')[0]
+            # Clock element may contain multiple lines (time + player name)
+            # Find the line that looks like a time (contains : or is a number)
+            lines = time_str.strip().split('\n')
             
-            if ':' in time_str:
-                parts = time_str.split(':')
-                if len(parts) == 2:
-                    mins, secs = int(parts[0]), int(parts[1])
-                    return mins * 60 + secs
-                elif len(parts) == 3:
-                    # Hours:Mins:Secs
-                    hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
-                    return hrs * 3600 + mins * 60 + secs
-            else:
-                # Just seconds
-                return int(time_str)
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Check if this line looks like a time
+                if ':' in line:
+                    parts = line.split(':')
+                    try:
+                        if len(parts) == 2:
+                            mins, secs = int(parts[0]), int(parts[1])
+                            return mins * 60 + secs
+                        elif len(parts) == 3:
+                            hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
+                            return hrs * 3600 + mins * 60 + secs
+                    except ValueError:
+                        continue
+                else:
+                    # Try parsing as just seconds (for <1 min)
+                    try:
+                        return int(line)
+                    except ValueError:
+                        continue
+            
+            return None
         except Exception:
             return None
