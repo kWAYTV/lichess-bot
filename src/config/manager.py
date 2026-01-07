@@ -58,7 +58,6 @@ class ConfigManager:
             "auto-play": "true",
             "auto-preset": "true",
             "log-level": "INFO",
-            "gui-enabled": "true",
         }
         self.config["humanization"] = {
             "min-delay": "0.3",
