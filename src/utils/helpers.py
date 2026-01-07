@@ -82,38 +82,60 @@ def humanized_delay(
 
 
 def advanced_humanized_delay(
-    action: str = "action", config_manager=None, delay_type: str = "base"
+    action: str = "action",
+    config_manager=None,
+    delay_type: str = "base",
+    remaining_time: int = None,
 ) -> None:
-    """Advanced humanized delay using only config manager"""
+    """Advanced humanized delay with time pressure awareness"""
     if not config_manager:
-        # Fallback to basic delay
         humanized_delay(0.5, 2.0, action)
         return
 
     min_seconds, max_seconds = config_manager.get_humanization_delay(delay_type)
 
-    # Advanced human-like patterns
-    base_delay = random.uniform(min_seconds, max_seconds)
-
-    # Add multiple layers of randomness
-    jitter_1 = random.uniform(0, 0.8)  # Primary jitter
-    jitter_2 = random.uniform(0, 0.3)  # Secondary jitter
-
-    # Occasional longer pauses (10% chance)
-    if random.random() < 0.1:
-        pause_bonus = random.uniform(0.5, 1.5)
-        logger.debug(f"Adding thinking pause: {pause_bonus:.2f}s")
+    # Calculate time pressure multiplier (0.0 to 1.0)
+    # Lower remaining time = lower multiplier = shorter delays
+    if remaining_time is not None:
+        if remaining_time < 10:
+            time_mult = 0.0  # Critical: no delays
+        elif remaining_time < 30:
+            time_mult = 0.2  # Very low: minimal delays
+        elif remaining_time < 60:
+            time_mult = 0.5  # Low: reduced delays
+        elif remaining_time < 120:
+            time_mult = 0.7  # Moderate pressure
+        else:
+            time_mult = 1.0  # Normal
     else:
-        pause_bonus = 0
+        time_mult = 1.0
 
-    # Micro-hesitations
-    micro_hesitation = random.uniform(-0.05, 0.15)
+    # Skip delays entirely in critical time
+    if time_mult == 0.0:
+        logger.debug(f"Skipping {action} delay (critical time)")
+        return
+
+    # Scale base delay
+    base_delay = random.uniform(min_seconds, max_seconds) * time_mult
+
+    # Scale jitters based on time pressure
+    jitter_1 = random.uniform(0, 0.8 * time_mult)
+    jitter_2 = random.uniform(0, 0.3 * time_mult)
+
+    # Only add pause bonus if we have time
+    pause_bonus = 0
+    if time_mult >= 0.7 and random.random() < 0.1:
+        pause_bonus = random.uniform(0.5, 1.5) * time_mult
+        logger.debug(f"Adding thinking pause: {pause_bonus:.2f}s")
+
+    # Micro-hesitations (scaled)
+    micro_hesitation = random.uniform(-0.05, 0.15) * time_mult
 
     # Final calculation
     final_delay = base_delay + jitter_1 + jitter_2 + pause_bonus + micro_hesitation
-    final_delay = max(0.1, final_delay)
+    final_delay = max(0.05, final_delay)  # Lower minimum for speed
 
-    logger.debug(f"Delaying {action} (advanced) for {final_delay:.2f}s")
+    logger.debug(f"Delaying {action} for {final_delay:.2f}s (time_mult={time_mult:.1f})")
 
     sleep(final_delay)
 
