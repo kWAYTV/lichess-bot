@@ -4,3 +4,4 @@ chess
 pyinstaller
 pystray
 pillow
+structlog

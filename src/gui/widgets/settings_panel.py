@@ -1,10 +1,10 @@
 """Settings Panel Widget - In-app configuration editor"""
 
 import tkinter as tk
+from tkinter import ttk
 from typing import Callable, Optional
 
 from ...utils.logging import logger
-
 from ...config.presets import get_all_presets, apply_preset
 
 
@@ -18,165 +18,188 @@ class SettingsPanelWidget(tk.Frame):
         self.on_save = on_save
         self.vars = {}
 
+        self._create_scrollable_container()
         self._create_widgets()
-        self._setup_layout()
         self._load_current_values()
+
+    def _create_scrollable_container(self):
+        """Create scrollable container for settings"""
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        # Canvas for scrolling
+        self.canvas = tk.Canvas(self, bg="#1a1a1a", highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = tk.Frame(self.canvas, bg="#1a1a1a")
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
+        # Bind canvas resize to adjust inner frame width
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # Mouse wheel scrolling
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+
+    def _on_canvas_configure(self, event):
+        """Adjust scrollable frame width to match canvas"""
+        self.canvas.itemconfig(self.canvas_window, width=event.width)
+
+    def _on_mousewheel(self, event):
+        """Handle mouse wheel scrolling"""
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def _create_widgets(self):
         """Create settings widgets"""
-        self.label_style = {"font": ("Segoe UI", 9), "fg": "#cccccc", "bg": "#1a1a1a"}
-        self.entry_style = {
+        container = self.scrollable_frame
+        container.grid_columnconfigure(0, weight=1)
+
+        label_style = {"font": ("Segoe UI", 9), "fg": "#cccccc", "bg": "#1a1a1a"}
+        entry_style = {
             "font": ("Consolas", 9), "bg": "#2a2a2a", "fg": "#ffffff",
-            "insertbackground": "#ffffff", "relief": "flat", "width": 8
+            "insertbackground": "#ffffff", "relief": "flat", "width": 6
         }
 
-        self.title = tk.Label(
-            self, text="Settings", font=("Segoe UI", 11, "bold"),
-            fg="#ffffff", bg="#1a1a1a"
-        )
+        row = 0
 
-        self.presets_frame = tk.LabelFrame(
-            self, text="Quick Presets", font=("Segoe UI", 9),
+        # Title
+        tk.Label(
+            container, text="Settings", font=("Segoe UI", 11, "bold"),
+            fg="#ffffff", bg="#1a1a1a"
+        ).grid(row=row, column=0, pady=(0, 8), sticky="w")
+        row += 1
+
+        # Presets section
+        presets_frame = tk.LabelFrame(
+            container, text="Presets", font=("Segoe UI", 9),
             fg="#888888", bg="#1a1a1a", relief="flat"
         )
+        presets_frame.grid(row=row, column=0, sticky="ew", pady=4)
+        presets_frame.grid_columnconfigure((0, 1), weight=1)
+        row += 1
 
         preset_btn_style = {
             "font": ("Segoe UI", 8, "bold"),
             "fg": "#ffffff",
             "relief": "flat",
             "cursor": "hand2",
-            "width": 8,
         }
 
-        self.bullet_btn = tk.Button(
-            self.presets_frame, text="Bullet", bg="#cc4444",
+        # 2x2 grid for presets
+        tk.Button(
+            presets_frame, text="Bullet", bg="#cc4444",
             activebackground="#dd5555",
             command=lambda: self._apply_preset("bullet"), **preset_btn_style
-        )
-        self.bullet_btn.grid(row=0, column=0, padx=2, pady=4)
+        ).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
 
-        self.blitz_btn = tk.Button(
-            self.presets_frame, text="Blitz", bg="#cc8844",
+        tk.Button(
+            presets_frame, text="Blitz", bg="#cc8844",
             activebackground="#dd9955",
             command=lambda: self._apply_preset("blitz"), **preset_btn_style
-        )
-        self.blitz_btn.grid(row=0, column=1, padx=2, pady=4)
+        ).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
 
-        self.rapid_btn = tk.Button(
-            self.presets_frame, text="Rapid", bg="#4488cc",
+        tk.Button(
+            presets_frame, text="Rapid", bg="#4488cc",
             activebackground="#5599dd",
             command=lambda: self._apply_preset("rapid"), **preset_btn_style
-        )
-        self.rapid_btn.grid(row=0, column=2, padx=2, pady=4)
+        ).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
 
-        self.classical_btn = tk.Button(
-            self.presets_frame, text="Classical", bg="#448844",
+        tk.Button(
+            presets_frame, text="Classical", bg="#448844",
             activebackground="#559955",
             command=lambda: self._apply_preset("classical"), **preset_btn_style
-        )
-        self.classical_btn.grid(row=0, column=3, padx=2, pady=4)
+        ).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
 
-        self.engine_frame = tk.LabelFrame(
-            self, text="Engine", font=("Segoe UI", 9),
+        # Engine section
+        engine_frame = tk.LabelFrame(
+            container, text="Engine", font=("Segoe UI", 9),
             fg="#888888", bg="#1a1a1a", relief="flat"
         )
+        engine_frame.grid(row=row, column=0, sticky="ew", pady=4)
+        engine_frame.grid_columnconfigure(1, weight=1)
+        row += 1
 
-        tk.Label(
-            self.engine_frame, text="Depth:", **self.label_style
-        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        tk.Label(engine_frame, text="Depth:", **label_style).grid(row=0, column=0, sticky="w", padx=5, pady=2)
         self.vars["depth"] = tk.StringVar()
-        self.depth_entry = tk.Entry(
-            self.engine_frame, textvariable=self.vars["depth"], **self.entry_style
-        )
-        self.depth_entry.grid(row=0, column=1, padx=5, pady=2)
+        tk.Entry(engine_frame, textvariable=self.vars["depth"], **entry_style).grid(row=0, column=1, sticky="w", padx=5, pady=2)
 
-        tk.Label(
-            self.engine_frame, text="Skill:", **self.label_style
-        ).grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        tk.Label(engine_frame, text="Skill:", **label_style).grid(row=1, column=0, sticky="w", padx=5, pady=2)
         self.vars["skill"] = tk.StringVar()
-        self.skill_entry = tk.Entry(
-            self.engine_frame, textvariable=self.vars["skill"], **self.entry_style
-        )
-        self.skill_entry.grid(row=1, column=1, padx=5, pady=2)
+        tk.Entry(engine_frame, textvariable=self.vars["skill"], **entry_style).grid(row=1, column=1, sticky="w", padx=5, pady=2)
 
-        self.general_frame = tk.LabelFrame(
-            self, text="General", font=("Segoe UI", 9),
+        # General section
+        general_frame = tk.LabelFrame(
+            container, text="General", font=("Segoe UI", 9),
             fg="#888888", bg="#1a1a1a", relief="flat"
         )
+        general_frame.grid(row=row, column=0, sticky="ew", pady=4)
+        row += 1
 
         self.vars["arrow"] = tk.BooleanVar()
-        self.arrow_check = tk.Checkbutton(
-            self.general_frame, text="Show arrow", variable=self.vars["arrow"],
+        tk.Checkbutton(
+            general_frame, text="Show arrow", variable=self.vars["arrow"],
             font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
             selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
-        )
-        self.arrow_check.grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
 
         self.vars["auto_preset"] = tk.BooleanVar()
-        self.auto_preset_check = tk.Checkbutton(
-            self.general_frame, text="Auto-preset", variable=self.vars["auto_preset"],
+        tk.Checkbutton(
+            general_frame, text="Auto-preset", variable=self.vars["auto_preset"],
             font=("Segoe UI", 9), fg="#cccccc", bg="#1a1a1a",
             selectcolor="#2a2a2a", activebackground="#1a1a1a", activeforeground="#ffffff"
-        )
-        self.auto_preset_check.grid(row=1, column=0, sticky="w", padx=5, pady=2)
+        ).grid(row=1, column=0, sticky="w", padx=5, pady=2)
 
-        self.human_frame = tk.LabelFrame(
-            self, text="Delays (seconds)", font=("Segoe UI", 9),
+        # Delays section
+        delays_frame = tk.LabelFrame(
+            container, text="Delays (sec)", font=("Segoe UI", 9),
             fg="#888888", bg="#1a1a1a", relief="flat"
         )
+        delays_frame.grid(row=row, column=0, sticky="ew", pady=4)
+        delays_frame.grid_columnconfigure((1, 3), weight=1)
+        row += 1
 
-        tk.Label(
-            self.human_frame, text="Min:", **self.label_style
-        ).grid(row=0, column=0, sticky="w", padx=5, pady=2)
+        tk.Label(delays_frame, text="Min:", **label_style).grid(row=0, column=0, sticky="w", padx=5, pady=2)
         self.vars["min_delay"] = tk.StringVar()
-        tk.Entry(
-            self.human_frame, textvariable=self.vars["min_delay"], **self.entry_style
-        ).grid(row=0, column=1, padx=5, pady=2)
+        tk.Entry(delays_frame, textvariable=self.vars["min_delay"], **entry_style).grid(row=0, column=1, sticky="w", padx=2, pady=2)
 
-        tk.Label(
-            self.human_frame, text="Max:", **self.label_style
-        ).grid(row=0, column=2, sticky="w", padx=5, pady=2)
+        tk.Label(delays_frame, text="Max:", **label_style).grid(row=0, column=2, sticky="w", padx=5, pady=2)
         self.vars["max_delay"] = tk.StringVar()
-        tk.Entry(
-            self.human_frame, textvariable=self.vars["max_delay"], **self.entry_style
-        ).grid(row=0, column=3, padx=5, pady=2)
+        tk.Entry(delays_frame, textvariable=self.vars["max_delay"], **entry_style).grid(row=0, column=3, sticky="w", padx=2, pady=2)
 
+        # Save button - at bottom
         self.save_btn = tk.Button(
-            self, text="Save & Apply", font=("Segoe UI", 9, "bold"),
+            container, text="Save & Apply", font=("Segoe UI", 9, "bold"),
             fg="#ffffff", bg="#3a8a3a", activebackground="#4a9a4a",
             activeforeground="#ffffff", relief="flat", cursor="hand2",
             command=self._save_settings
         )
+        self.save_btn.grid(row=row, column=0, sticky="ew", pady=(12, 4))
+        row += 1
 
+        # Status label
         self.status_label = tk.Label(
-            self, text="", font=("Segoe UI", 8),
+            container, text="", font=("Segoe UI", 8),
             fg="#888888", bg="#1a1a1a"
         )
-
-    def _setup_layout(self):
-        """Setup widget layout"""
-        self.grid_columnconfigure(0, weight=1)
-
-        self.title.grid(row=0, column=0, pady=(0, 8), sticky="w")
-        self.presets_frame.grid(row=1, column=0, sticky="ew", pady=4)
-        self.engine_frame.grid(row=2, column=0, sticky="ew", pady=4)
-        self.general_frame.grid(row=3, column=0, sticky="ew", pady=4)
-        self.human_frame.grid(row=4, column=0, sticky="ew", pady=4)
-        self.save_btn.grid(row=5, column=0, sticky="ew", pady=(8, 4))
-        self.status_label.grid(row=6, column=0, sticky="ew")
+        self.status_label.grid(row=row, column=0, sticky="ew")
 
     def _load_current_values(self):
         """Load current config values into UI"""
         try:
             self.vars["depth"].set(self.config.get("engine", "depth", "5"))
             self.vars["skill"].set(self.config.get("engine", "skill-level", "14"))
-
             self.vars["arrow"].set(self.config.show_arrow)
             self.vars["auto_preset"].set(self.config.is_auto_preset_enabled)
-
             self.vars["min_delay"].set(self.config.get("humanization", "min-delay", "0.3"))
             self.vars["max_delay"].set(self.config.get("humanization", "max-delay", "1.8"))
-
         except Exception as e:
             logger.error(f"Failed to load settings: {e}")
 
@@ -203,7 +226,6 @@ class SettingsPanelWidget(tk.Frame):
             self.config.set("humanization", "max-delay", str(max_delay))
 
             self.config.save()
-
             self._flash_status("Saved!", "#66ff66")
 
             if self.on_save:
@@ -227,7 +249,7 @@ class SettingsPanelWidget(tk.Frame):
                 self._load_current_values()
                 presets = get_all_presets()
                 preset = presets.get(preset_name)
-                self._flash_status(f"{preset.name} preset applied!", "#66ff66")
+                self._flash_status(f"{preset.name} applied!", "#66ff66")
             else:
                 self._flash_status("Unknown preset", "#ff6666")
         except Exception as e:

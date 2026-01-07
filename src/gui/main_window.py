@@ -119,28 +119,28 @@ class ChessBotGUI:
         board_frame.grid_columnconfigure(0, weight=1)
         board_frame.grid_rowconfigure(0, weight=1)
         self.chess_board = ChessBoardWidget(board_frame)
-        self.chess_board.grid(row=0, column=0, sticky="nsew")
+        self.chess_board.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self.notebook.add(board_frame, text="Board")
 
         log_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         log_frame.grid_columnconfigure(0, weight=1)
         log_frame.grid_rowconfigure(0, weight=1)
         self.log_panel = LogPanelWidget(log_frame, compact=True)
-        self.log_panel.grid(row=0, column=0, sticky="nsew")
+        self.log_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self.notebook.add(log_frame, text="Log")
 
         moves_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         moves_frame.grid_columnconfigure(0, weight=1)
         moves_frame.grid_rowconfigure(0, weight=1)
         self.move_history = MoveHistoryWidget(moves_frame)
-        self.move_history.grid(row=0, column=0, sticky="nsew")
+        self.move_history.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self.notebook.add(moves_frame, text="Moves")
 
         stats_frame = tk.Frame(self.notebook, bg="#1a1a1a")
         stats_frame.grid_columnconfigure(0, weight=1)
         stats_frame.grid_rowconfigure(0, weight=1)
         self.stats_panel = StatisticsPanelWidget(stats_frame, compact=True)
-        self.stats_panel.grid(row=0, column=0, sticky="nsew")
+        self.stats_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self.notebook.add(stats_frame, text="Stats")
 
         settings_frame = tk.Frame(self.notebook, bg="#1a1a1a")
@@ -148,7 +148,7 @@ class ChessBotGUI:
         settings_frame.grid_rowconfigure(0, weight=1)
         config_mgr = self.game_manager.config_manager if self.game_manager else None
         self.settings_panel = SettingsPanelWidget(settings_frame, config_mgr)
-        self.settings_panel.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        self.settings_panel.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
         self.notebook.add(settings_frame, text="Cfg")
 
         footer = tk.Frame(self.root, bg="#1a1a1a", height=24)

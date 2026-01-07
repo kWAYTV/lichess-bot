@@ -48,9 +48,9 @@ class MoveHistoryWidget(tk.Frame):
         self.tree.heading("white", text="White")
         self.tree.heading("black", text="Black")
 
-        self.tree.column("move_num", width=35, anchor="center")
-        self.tree.column("white", width=80, anchor="center")
-        self.tree.column("black", width=80, anchor="center")
+        self.tree.column("move_num", width=35, minwidth=30, anchor="center", stretch=False)
+        self.tree.column("white", width=80, minwidth=50, anchor="center", stretch=True)
+        self.tree.column("black", width=80, minwidth=50, anchor="center", stretch=True)
 
         style = ttk.Style()
         style.theme_use("clam")

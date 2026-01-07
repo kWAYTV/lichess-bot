@@ -204,7 +204,7 @@ class GameInfoWidget(tk.Frame):
                 mate_in = score.mate()
                 if mate_in > 0:
                     return f"Evaluation: Mate in {mate_in}"
-                return f"Evaluation: Mated in {abs(mate_in)}"
+                    return f"Evaluation: Mated in {abs(mate_in)}"
 
             if hasattr(score, "relative") and score.relative is not None:
                 score_val = score.relative.score(mate_score=10000) / 100.0

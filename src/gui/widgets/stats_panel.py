@@ -136,9 +136,9 @@ class StatisticsPanelWidget(tk.Frame):
         self.recent_tree.heading("score", text="Score")
         self.recent_tree.heading("moves", text="Moves")
 
-        self.recent_tree.column("result", width=50, anchor="center")
-        self.recent_tree.column("score", width=50, anchor="center")
-        self.recent_tree.column("moves", width=50, anchor="center")
+        self.recent_tree.column("result", width=60, minwidth=40, anchor="center", stretch=True)
+        self.recent_tree.column("score", width=60, minwidth=40, anchor="center", stretch=True)
+        self.recent_tree.column("moves", width=60, minwidth=40, anchor="center", stretch=True)
 
         self.scrollbar = ttk.Scrollbar(
             self.recent_frame, orient="vertical", command=self.recent_tree.yview
@@ -155,15 +155,15 @@ class StatisticsPanelWidget(tk.Frame):
         self.session_btn.pack(side="left", padx=(0, 2))
         self.alltime_btn.pack(side="left")
 
-        # Stats row
+        # Stats row - 3 columns x 2 rows for better fit
         self.stats_frame.grid(row=1, column=0, sticky="ew", padx=4, pady=4)
-        self.stats_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        self.stats_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self.total_label.grid(row=0, column=0, padx=2, pady=4)
-        self.wins_label.grid(row=0, column=1, padx=2, pady=4)
-        self.losses_label.grid(row=0, column=2, padx=2, pady=4)
-        self.draws_label.grid(row=0, column=3, padx=2, pady=4)
-        self.winrate_label.grid(row=0, column=4, padx=2, pady=4)
+        self.total_label.grid(row=0, column=0, padx=2, pady=2)
+        self.wins_label.grid(row=0, column=1, padx=2, pady=2)
+        self.losses_label.grid(row=0, column=2, padx=2, pady=2)
+        self.draws_label.grid(row=1, column=0, padx=2, pady=2)
+        self.winrate_label.grid(row=1, column=1, columnspan=2, padx=2, pady=2)
 
         # Recent games
         self.recent_frame.grid(row=2, column=0, sticky="nsew", padx=4, pady=4)

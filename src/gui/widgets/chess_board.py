@@ -108,7 +108,7 @@ class ChessBoardWidget(tk.Frame):
                 )
 
     def _draw_coordinates(self):
-        """Draw file and rank coordinates around the board"""
+        """Draw file and rank coordinates inside edge squares"""
         start_x = (self.canvas.winfo_width() - self.board_size) // 2
         start_y = (self.canvas.winfo_height() - self.board_size) // 2
 
@@ -120,27 +120,32 @@ class ChessBoardWidget(tk.Frame):
         files = "abcdefgh" if self.orientation == "white" else "hgfedcba"
         ranks = "87654321" if self.orientation == "white" else "12345678"
 
-        font_size = max(8, self.square_size // 8)
+        font_size = max(7, self.square_size // 5)
+        offset = max(4, self.square_size // 8)
 
+        # Draw file letters in bottom row squares
         for i, file_letter in enumerate(files):
-            x = start_x + i * self.square_size + self.square_size // 2
-            y = start_y + self.board_size + 15
+            x = start_x + i * self.square_size + self.square_size - offset
+            y = start_y + self.board_size - offset
             self.canvas.create_text(
                 x, y,
                 text=file_letter,
                 fill=self.coordinate_color,
-                font=("Arial", font_size, "bold"),
+                font=("Arial", font_size),
+                anchor="se",
                 tags="coordinates",
             )
 
+        # Draw rank numbers in left column squares
         for i, rank_number in enumerate(ranks):
-            x = start_x - 15
-            y = start_y + i * self.square_size + self.square_size // 2
+            x = start_x + offset
+            y = start_y + i * self.square_size + offset
             self.canvas.create_text(
                 x, y,
                 text=rank_number,
                 fill=self.coordinate_color,
-                font=("Arial", font_size, "bold"),
+                font=("Arial", font_size),
+                anchor="nw",
                 tags="coordinates",
             )
 
