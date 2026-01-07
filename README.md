@@ -20,6 +20,15 @@
 
 ## Setup
 
+1. Download the [latest release](https://github.com/kWAYTV/helping-hand/releases/latest)
+2. Extract and add your Lichess cookies to `deps/lichess.org.cookies.json`
+3. Run `helping-hand.exe`
+
+**Getting cookies:** Use [Cookie JSON Exporter](https://addons.mozilla.org/en-US/firefox/addon/%E3%82%AF%E3%83%83%E3%82%AD%E3%83%BCjson%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%87%BA%E5%8A%9B-for-puppeteer/) on lichess.org while logged in.
+
+<details>
+<summary>Manual setup (from source)</summary>
+
 ```bash
 git clone https://github.com/kWAYTV/helping-hand.git
 cd helping-hand
@@ -30,8 +39,9 @@ pip install -r requirements.txt
 - [Stockfish](https://stockfishchess.org/download/) → `deps/stockfish/stockfish.exe`
 - [GeckoDriver](https://github.com/mozilla/geckodriver/releases) → `deps/geckodriver/geckodriver.exe`
 - [xPath Finder](https://addons.mozilla.org/en-US/firefox/addon/xpath_finder/) → `deps/xpath_finder.xpi`
+- [Chess Merida Font](https://github.com/kWAYTV/helping-hand/blob/main/deps/merifont.ttf) → `deps/merifont.ttf`
 
-**Auth:** Export Lichess cookies with [Cookie JSON Exporter](https://addons.mozilla.org/en-US/firefox/addon/%E3%82%AF%E3%83%83%E3%82%AD%E3%83%BCjson%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E5%87%BA%E5%8A%9B-for-puppeteer/) → save as `deps/lichess.org.cookies.json`
+</details>
 
 ## Config
 

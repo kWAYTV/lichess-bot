@@ -239,7 +239,7 @@ class StatisticsPanelWidget(tk.Frame):
         for game in games[:10]:
             result = game.get("result", "?").upper()[:1]
             score = game.get("score", "?")
-            moves = game.get("total_moves", 0)
+                moves = game.get("total_moves", 0)
 
             self.recent_tree.insert("", "end", values=(result, score, moves))
 

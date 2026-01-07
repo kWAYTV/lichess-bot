@@ -163,7 +163,7 @@ cython_debug/
 
 debug/
 test/
-deps/lichess.org.cookies.json
+deps/
 config.ini
 !config.example.ini
 stats.json
