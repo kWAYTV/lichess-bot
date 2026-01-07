@@ -413,19 +413,30 @@ class BoardHandler:
     def get_our_clock_seconds(self) -> Optional[int]:
         """Get our remaining time in seconds"""
         try:
-            # Try CSS selector first (more reliable)
-            selectors = [Selectors.CLOCK_CSS_BOTTOM, Selectors.CLOCK_BOTTOM]
+            # Try the input element first (has value attribute)
+            try:
+                clock_elem = self.driver.find_element(*Selectors.CLOCK_OUR)
+                clock_text = clock_elem.get_attribute("value") or clock_elem.text
+                if clock_text:
+                    clock_text = clock_text.strip()
+                    seconds = self._parse_clock_time(clock_text)
+                    logger.debug(f"Clock raw='{clock_text}' parsed={seconds}s")
+                    return seconds
+            except:
+                pass
             
-            for selector in selectors:
-                try:
-                    clock_elem = self.driver.find_element(*selector)
-                    clock_text = clock_elem.text.strip()
-                    if clock_text:
-                        seconds = self._parse_clock_time(clock_text)
-                        logger.debug(f"Clock raw='{clock_text}' parsed={seconds}s")
-                        return seconds
-                except:
-                    continue
+            # Fallback to CSS selector
+            try:
+                clock_elem = self.driver.find_element(*Selectors.CLOCK_CSS_BOTTOM)
+                clock_text = clock_elem.text.strip()
+                # Join lines that were split (Lichess sometimes puts 01\n:\n00)
+                clock_text = clock_text.replace('\n', '')
+                if clock_text:
+                    seconds = self._parse_clock_time(clock_text)
+                    logger.debug(f"Clock (fallback) raw='{clock_text}' parsed={seconds}s")
+                    return seconds
+            except:
+                pass
             
             return None
         except Exception as e:
@@ -435,33 +446,20 @@ class BoardHandler:
     def _parse_clock_time(self, time_str: str) -> Optional[int]:
         """Parse clock time string to seconds (e.g. '5:30' -> 330, '0:45' -> 45)"""
         try:
-            # Clock element may contain multiple lines (time + player name)
-            # Find the line that looks like a time (contains : or is a number)
-            lines = time_str.strip().split('\n')
+            # Remove newlines and extra whitespace (Lichess sometimes splits 01\n:\n00)
+            time_str = time_str.replace('\n', '').replace(' ', '').strip()
             
-            for line in lines:
-                line = line.strip()
-                if not line:
-                    continue
-                    
-                # Check if this line looks like a time
-                if ':' in line:
-                    parts = line.split(':')
-                    try:
-                        if len(parts) == 2:
-                            mins, secs = int(parts[0]), int(parts[1])
-                            return mins * 60 + secs
-                        elif len(parts) == 3:
-                            hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
-                            return hrs * 3600 + mins * 60 + secs
-                    except ValueError:
-                        continue
-                else:
-                    # Try parsing as just seconds (for <1 min)
-                    try:
-                        return int(line)
-                    except ValueError:
-                        continue
+            if ':' in time_str:
+                parts = time_str.split(':')
+                if len(parts) == 2:
+                    mins, secs = int(parts[0]), int(parts[1])
+                    return mins * 60 + secs
+                elif len(parts) == 3:
+                    hrs, mins, secs = int(parts[0]), int(parts[1]), int(parts[2])
+                    return hrs * 3600 + mins * 60 + secs
+            else:
+                # Just seconds (for <1 min display)
+                return int(time_str)
             
             return None
         except Exception:

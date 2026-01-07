@@ -146,13 +146,13 @@ class BrowserManager:
         """Save current cookies to file"""
         if not self.driver:
             return
-        try:
-            cookies = self.driver.get_cookies()
+            try:
+                cookies = self.driver.get_cookies()
             with open(self.COOKIES_FILE, "w") as f:
-                json.dump(cookies, f, indent=2)
+                    json.dump(cookies, f, indent=2)
             logger.debug(f"Saved {len(cookies)} cookies")
-        except Exception as e:
-            logger.error(f"Failed to save cookies: {e}")
+            except Exception as e:
+                logger.error(f"Failed to save cookies: {e}")
 
     def load_cookies(self) -> bool:
         """Load cookies from file"""
@@ -168,14 +168,14 @@ class BrowserManager:
                 logger.debug("Cannot load cookies - not on Lichess domain")
                 return False
 
-            for cookie in cookies:
-                try:
-                    self.driver.add_cookie(cookie)
-                except Exception as e:
+                for cookie in cookies:
+                    try:
+                        self.driver.add_cookie(cookie)
+                    except Exception as e:
                     logger.debug(f"Failed to add cookie: {e}")
 
-            logger.debug(f"Loaded {len(cookies)} cookies")
-            return True
+                logger.debug(f"Loaded {len(cookies)} cookies")
+                return True
 
         except Exception as e:
             logger.error(f"Failed to load cookies: {e}")
